@@ -1,0 +1,11 @@
+
+def Switch = Switch(off);
+def Switch(off) = on?,Switch(on);
+def Switch(on) = off?,Switch(off);
+
+def Switch2 = on?,off?,Switch2;
+
+bisim Switch ~ Switch2;
+
+bisim ? Switch ~ Switch2;
+

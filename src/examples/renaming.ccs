@@ -1,0 +1,6 @@
+lts (a?,0) [b/a];
+
+norm (new(a)[a?,b?])[c/a];
+norm (new(a)[a?,b?])[c/b];
+
+norm (bonjour?,monde?,0) [hello/bonjour, world/monde];

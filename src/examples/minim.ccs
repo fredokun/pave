@@ -1,0 +1,9 @@
+def R = a?,b?,R
+def S = b?,a?,S
+def Q = a?,S
+def P = c?,Q + c?,R
+
+lts P
+mini P
+bisim ? c?,Q ~ c?,R
+fbisim ? c?,Q ~ c?,R
