@@ -1,6 +1,8 @@
 open Printf
+
 open Utils
 open Syntax
+open Normalize
 open Semop
 open Minim
 

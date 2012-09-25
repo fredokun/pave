@@ -1,6 +1,8 @@
-open Utils
 open Printf
+
+open Utils
 open Syntax
+open Normalize
 open Semop
 
 (* Graph structure : maps a graph state to a GSet of previous graph states *)

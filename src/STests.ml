@@ -1,6 +1,7 @@
 open Printf
 open Utils
 open Syntax
+open Normalize
 open NormTests
 
 let once = Prefix(Out "once", Silent)

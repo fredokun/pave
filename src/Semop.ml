@@ -1,6 +1,8 @@
 open Printf
+
 open Utils
 open Syntax
+open Normalize
 
 (* Remark: we use a dedicated type because in further
    extension, the set of possible transition labels could

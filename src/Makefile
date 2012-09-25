@@ -19,6 +19,6 @@ _build/%.$(KIND): $(SRCS)
 
 clean:
 	@ocamlbuild -clean
-	@rm -f *~ *.dot *.png $(TARGS)
+	@rm -f *~ *.dot *.dot.pdf *.png $(TARGS)
 
 .PHONY: all clean

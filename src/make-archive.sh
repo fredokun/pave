@@ -1,6 +1,6 @@
 #! /bin/sh
 
-FILES="LICENSE.txt AUTHORS Makefile Utils.ml Lexer.mll Parser.mly Syntax.ml Minim.ml Semop.ml Control.ml Pave.ml NormTests.ml STests.ml examples/*.ccs"
+FILES="LICENSE.txt AUTHORS Makefile Utils.ml Lexer.mll Parser.mly Syntax.ml Normalize.ml Minim.ml Semop.ml Control.ml Pave.ml NormTests.ml STests.ml examples/*.ccs"
 
 DATE=$(date "+%d-%m-%Y")
 

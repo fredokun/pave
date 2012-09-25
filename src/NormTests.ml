@@ -1,6 +1,7 @@
 open Printf
 open Utils
 open Syntax
+open Normalize
 
 let rand_proc n =
   let rec f i vars =
