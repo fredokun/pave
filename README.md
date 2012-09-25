@@ -1,3 +1,4 @@
+<pre>
 ===============
    .+------+                                         +------+.
  .' |    .'|   (P)ROCESS                             |`.    | `.
@@ -8,6 +9,7 @@
 +------+'         & V.Membre' & A.Deharbe & J.Salvucci  `+------+
               released under the GPL (cf. LICENSE)
 ===============
+</pre>
 
 This is a simple tool to describe models of concurrent systems and analyze
 their behavioral properties.
