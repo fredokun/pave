@@ -26,24 +26,41 @@ let handle_command = function
   | ":quit" -> printf "bye bye !\n%!" ; exit 0
   | cmd -> printf "Unknown command: %s\n%!" cmd
 
+let timing operation =
+  let start_time = Sys.time()
+  in let result = operation()
+     in let end_time = Sys.time()
+        in
+        (result, end_time -. start_time) 
+
 let handle_normalization proc =
   printf "Normalize process...\n%!";
-  printf "%s\n%!" (string_of_nprocess (normalize proc))
+  let proc',time = timing (fun () -> normalize proc)
+  in
+  printf "%s\n%!" (string_of_nprocess proc') ;
+  printf "(elapsed time=%fs)\n%!" time 
 
 let handle_struct_congr p q =
   printf "Check structural congruence...\n%!";
-  if p === q
-  then printf "the processes *are* structurally congruent\n%!"
-  else printf "the processes are *not* structurally congruent\n%!"
+  let ok, time = timing (fun () -> p === q)
+  in
+  (if ok
+   then printf "the processes *are* structurally congruent\n%!"
+   else printf "the processes are *not* structurally congruent\n%!") ;
+  printf "(elapsed time=%fs)\n%!" time 
 
 let global_definition_map = Hashtbl.create 64
 
 let handle_deriv p =
-  let np = normalize p in
-  let ds = derivatives global_definition_map np in
-    TSet.iter (fun t -> printf "%s\n" (string_of_derivative t)) ds;
-    printf "\n%!"
-
+  let op = fun () ->
+    let np = normalize p in
+    derivatives global_definition_map np 
+  in
+  let derivs, time = timing op
+  in
+  TSet.iter (fun t -> printf "%s\n" (string_of_derivative t)) derivs;
+  printf "(elapsed time=%fs)\n%!" time 
+  
 let fetch_definition key =
   Hashtbl.find global_definition_map key
 
@@ -65,68 +82,86 @@ let dot_style_format' (pl, l, pl') =
     (string_of_label l)
 
 let handle_lts p =
-  let transs = lts global_definition_map (normalize p) in
-    List.iter (fun t -> printf "%s\n" (string_of_transition t)) transs;
-    printf "\nGenerating lts.dot... %!";
-    let nprocs =
-      List.fold_left (fun acc (x, _, y) -> PSet.add x (PSet.add y acc))
-	PSet.empty transs
-    in
-    let oc = open_out "lts.dot" in
-      fprintf oc "digraph LTS {\n";
-      PSet.iter
-	(fun np ->
-	   fprintf oc "\"%s\" [ fontcolor=blue ]\n" (string_of_nprocess np))
-	nprocs;
-      if transs = [] then fprintf oc "  0\n" else
-	List.iter (fun t -> fprintf oc "  %s\n" (dot_style_format t)) transs;
-      fprintf oc "}\n";
-      close_out oc;
-      printf "done\n%!"
+  let transs, time = timing (fun () -> lts global_definition_map (normalize p)) 
+  in
+  List.iter (fun t -> printf "%s\n" (string_of_transition t)) transs;
+  printf "\nGenerating lts.dot... %!";
+  let nprocs =
+    List.fold_left (fun acc (x, _, y) -> PSet.add x (PSet.add y acc))
+      PSet.empty transs
+  in
+  let oc = open_out "lts.dot" in
+  fprintf oc "digraph LTS {\n";
+  PSet.iter
+    (fun np ->
+      fprintf oc "\"%s\" [ fontcolor=blue ]\n" (string_of_nprocess np))
+    nprocs;
+  if transs = [] then fprintf oc "  0\n" else
+    List.iter (fun t -> fprintf oc "  %s\n" (dot_style_format t)) transs;
+  fprintf oc "}\n";
+  close_out oc;
+  printf "done\n(elapsed time=%fs)\n%!" time
 
 let handle_minimization proc =
   printf "Minimize process...\n%!";
-  let p = normalize proc in
-  let transs = minimize global_definition_map p in
-    List.iter (fun t -> printf "%s\n" (string_of_transitions t)) transs;
-    printf "\nGenerating lts_mini.dot... %!";
-    let nprocs = 
-      List.fold_left (fun acc (x, _, y) -> x::(y::acc)) [] transs
-    in
-    let oc = open_out "lts_mini.dot" in
-      fprintf oc "digraph LTSMINI {\n";
-      List.iter 
-	(fun x -> fprintf oc "\"%s\" [ fontcolor=blue ]\n"
-	   (string_of_list string_of_nprocess x))
-	nprocs;
-      if transs = [] then fprintf oc "  0\n" else
-	List.iter (fun t -> fprintf oc "  %s\n" (dot_style_format' t)) transs;
-      fprintf oc "}\n";
-      close_out oc;
-      printf "done\n%!"
+  let transs, time = timing (fun () ->
+    let p = normalize proc in
+    minimize global_definition_map p) 
+  in
+  List.iter (fun t -> printf "%s\n" (string_of_transitions t)) transs;
+  printf "\nGenerating lts_mini.dot... %!";
+  let nprocs = 
+    List.fold_left (fun acc (x, _, y) -> x::(y::acc)) [] transs
+  in
+  let oc = open_out "lts_mini.dot" in
+  fprintf oc "digraph LTSMINI {\n";
+  List.iter 
+    (fun x -> fprintf oc "\"%s\" [ fontcolor=blue ]\n"
+      (string_of_list string_of_nprocess x))
+    nprocs;
+  if transs = [] then fprintf oc "  0\n" else
+    List.iter (fun t -> fprintf oc "  %s\n" (dot_style_format' t)) transs;
+  fprintf oc "}\n";
+  close_out oc;
+  printf "done\n(elapsed time=%fs)\n%!" time
 
 let handle_bisim p1 p2 =
+  printf "Calculate bisimilarity (slow)...\n%!";
+  let start_time = Sys.time()
+  in
   let np1 = normalize p1 in
   let np2 = normalize p2 in
-    try
-      let bsm = construct_bisimilarity global_definition_map np1 np2 in
-      let print (np1, np2) =
-	printf "{ %s ; %s }\n" (string_of_nprocess np1) (string_of_nprocess np2)
-      in
-	BSet.iter print bsm
-    with Failure "Not bisimilar" ->
-      printf "the processes are *not* bisimilar\n%!"
+  try
+    let bsm = construct_bisimilarity global_definition_map np1 np2 
+    in
+    let end_time = Sys.time()
+    in
+    let print (np1, np2) =
+      printf "{ %s ; %s }\n" (string_of_nprocess np1) (string_of_nprocess np2)
+    in
+    printf "the processes are bisimilar\n(elapsed time=%fs)\n%!" (end_time-.start_time) ;
+    BSet.iter print bsm
+  with Failure "Not bisimilar" ->
+    let end_time = Sys.time()
+    in
+    printf "the processes are *not* bisimilar\n(elapsed time=%fs)\n%!" (end_time-.start_time)
 
 let handle_is_bisim p1 p2 =
-  let np1 = normalize p1 in
-  let np2 = normalize p2 in
-    if is_bisimilar global_definition_map np1 np2
-    then printf "the processes *are* bisimilar\n%!"
-    else printf "the processes are *not* bisimilar\n%!"
+  let ok,time = timing (fun () ->
+    let np1 = normalize p1 in
+    let np2 = normalize p2 in
+    is_bisimilar global_definition_map np1 np2)
+  in
+  if ok 
+  then printf "the processes *are* bisimilar\n(elapsed time=%fs)\n%!" time
+    else printf "the processes are *not* bisimilar\n(elapsed time=%fs)\n%!" time
 
 let handle_is_fbisim p1 p2 =
-  let np1 = normalize p1 in
-  let np2 = normalize p2 in
-  if is_fbisimilar global_definition_map np1 np2
-  then printf "the processes *are* bisimilar\n%!"
-  else printf "the processes are *not* bisimilar\n%!"
+  let ok,time = timing (fun () ->
+    let np1 = normalize p1 in
+    let np2 = normalize p2 in
+    is_fbisimilar global_definition_map np1 np2)
+  in
+  if ok
+  then printf "the processes *are* bisimilar\n(elapsed time=%fs)\n%!" time
+  else printf "the processes are *not* bisimilar\n(elapsed time=%fs)\n%!" time
