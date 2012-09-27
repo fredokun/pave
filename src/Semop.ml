@@ -45,150 +45,141 @@ module BSet = Set.Make (
   end
 )
 
-let derivatives defs ((orig_res, orig_np, orig_rename) as orig_nproc) =
+let derivatives defs ((orig_res, orig_np) as orig_nproc) =
   let restrict res derivs =
     let filter (_, lab, _) =
       match lab with
-	| T_Tau -> true
-	| T_In n | T_Out n -> not (SSet.mem n res)
+      | T_Tau -> true
+      | T_In n | T_Out n -> not (SSet.mem n res)
     in
       TSet.filter filter derivs
   in
-let renames ren derivs=
+  let renames var name derivs=
     let folder (src, lab, dest) acc =
-      match lab with
-	| T_Tau -> TSet.add (src,T_Tau,dest) acc
-	| T_In n ->  
-	  begin
-	    try 
-	      let (_,value) = List.find  (fun (target,_)-> target = n) ren
-	      in
-	   TSet.add   (src,T_In value,dest) acc
-	    with Not_found ->TSet.add  (src,T_In n,dest) acc
-	  end
-	| T_Out n ->
-	  begin
-	    try 
-	      let (_,value) = List.find  (fun (target,_)-> target = n) ren
-	      in
-	  TSet.add   (src, T_Out value,dest) acc
-	    with Not_found ->TSet.add (src, T_Out n,dest) acc
-	  end
-
+      let lab' = match lab with
+        | T_Tau -> T_Tau
+        | T_In n -> T_In (if n = var then name else n)
+        | T_Out n -> T_Out (if n = var then name else n)
+      in
+        TSet.add (src, lab', dest) acc
     in
       TSet.fold folder derivs TSet.empty
   in
   let label_of_prefix =
     function | Tau -> T_Tau | In n -> T_In n | Out n -> T_Out n
   in
-  let rec f res np renames =
+  let rec f res np =
     match np with
-      | NSilent -> TSet.empty
-      | NCall (name, args) ->
-	  let def_sign = string_of_def_header (Definition(name,args,Silent)) in
-	  let Definition (_, _, body) =
-	    try Hashtbl.find defs def_sign
-	    with Not_found -> failwith (sprintf "Process %s not found" name)
-	  in
-	  let (body_res, body_np, body_renames) = normalize body in
-	  let derivs = f body_res body_np body_renames in
-	    restrict body_res derivs
-      | NPrefix (pref, np) ->
-	  TSet.singleton (orig_nproc, label_of_prefix pref, renormalize(res,np,renames))
-      | NSum nps ->
-	  List.fold_left (fun acc np -> TSet.union (f res np renames) acc)
-	    TSet.empty nps
-      | NPar nps ->
-	  let np_frees = SSet.diff (nfreeNames np) res in
-	  let ((set_par : TSet.t), (set_simpl : (TSet.t * nproc list) list)) =
-	    let folder (acc_par, acc_simpl) np =
-	      let oths_np = List.filter ((!=) np) nps in
-	      let nexts = f SSet.empty np renames in
-	      let folder (src, lab, (in_res, dst, orig_rename)) acc =
-		let new_dst =
-		  let in_frees = SSet.diff (nfreeNames dst) in_res in
-		  let in_forbid = SSet.inter in_res np_frees in
-		  let np_forbid = SSet.inter res in_frees in
-		  let folder_in name (cnt, acc_in, acc_in_res) =
-		    let rec gen_name n =
-		      let new_n = "f" ^ (string_of_int n) in
-			if SSet.mem new_n in_frees || SSet.mem new_n in_res
-			then gen_name (succ n)
-			else (succ n, new_n)
-		    in
-		    let (new_cnt, new_name) = gen_name cnt in
-		      (new_cnt, nproc_subst acc_in name new_name,
-		       SSet.add new_name (SSet.remove name acc_in_res))
-		  in
-		  let (_, new_in, new_in_res) =
-		    SSet.fold folder_in in_forbid (0, dst, in_res)
-		  in
-		  let folder_oths name (cnt, acc_oths, acc_oths_res) =
-		    let rec gen_name n =
-		      let new_n = "f" ^ (string_of_int n) in
-			if SSet.mem new_n np_frees || SSet.mem new_n res
-			then gen_name (succ n)
-			else (succ n, new_n)
-		    in
-		    let (new_cnt, new_name) = gen_name cnt in
-		      (new_cnt,
-		       List.map (fun np -> nproc_subst np name new_name)
-			 acc_oths,
-		       SSet.add new_name (SSet.remove name acc_oths_res))
-		  in
-		  let (_, new_oths, new_oths_res) =
-		    SSet.fold folder_oths np_forbid (0, oths_np, res)
-		  in
-		    renormalize (SSet.union new_in_res new_oths_res,
-				 NPar (new_in :: new_oths), orig_rename)
+    | NSilent -> TSet.empty
+    | NCall (name, args) ->
+      let def_sign = string_of_def_header (Definition(name,args,Silent)) in
+      let Definition (_, _, body) =
+	try Hashtbl.find defs def_sign
+	with Not_found -> failwith (sprintf "Process %s not found" name)
+      in
+      let (body_res, body_np) = normalize body in
+      let derivs = f body_res body_np in
+	restrict body_res derivs
+    | NPrefix (pref, np) ->
+      TSet.singleton (orig_nproc, label_of_prefix pref, renormalize(res,np))
+    | NRename (var,name,np) -> 
+      let derivs = f res np
+      in
+        renames var name derivs
+    | NSum nps ->
+      List.fold_left (fun acc np -> TSet.union (f res np) acc)
+	TSet.empty nps
+    | NPar nps ->
+      let np_frees = SSet.diff (nfreeNames np) res in
+      let ((set_par : TSet.t), (set_simpl : (TSet.t * nproc list) list)) =
+	let folder (acc_par, acc_simpl) np =
+	  let oths_np = List.filter ((!=) np) nps in
+	  let nexts = f SSet.empty np in
+	  let folder (src, lab, (in_res, dst)) acc =
+	    let new_dst =
+	      let in_frees = SSet.diff (nfreeNames dst) in_res in
+	      let in_forbid = SSet.inter in_res np_frees in
+	      let np_forbid = SSet.inter res in_frees in
+	      let folder_in name (cnt, acc_in, acc_in_res) =
+		let rec gen_name n =
+		  let new_n = "f" ^ (string_of_int n) in
+		    if SSet.mem new_n in_frees || SSet.mem new_n in_res
+		    then gen_name (succ n)
+		    else (succ n, new_n)
 		in
-		  TSet.add (src, lab, new_dst) acc
+		let (new_cnt, new_name) = gen_name cnt in
+		  (new_cnt, nproc_subst acc_in name new_name,
+		   SSet.add new_name (SSet.remove name acc_in_res))
 	      in
-		(TSet.fold folder nexts acc_par, (nexts, oths_np) :: acc_simpl)
-	    in
-	      List.fold_left folder (TSet.empty, []) nps
-	  in
-	  let folder ((map, _) as acc) (elt_set, oths) =
-	    let folder' (_, lab, dst) ((map', set') as acc') =
-	      let add_taus org opp =
-		let new_map' =
-		  try SMap.add org ((dst,oths) :: SMap.find org map') map'
-		  with Not_found -> SMap.add org [(dst,oths)] map'
+	      let (_, new_in, new_in_res) =
+		SSet.fold folder_in in_forbid (0, dst, in_res)
+	      in
+	      let folder_oths name (cnt, acc_oths, acc_oths_res) =
+		let rec gen_name n =
+		  let new_n = "f" ^ (string_of_int n) in
+		    if SSet.mem new_n np_frees || SSet.mem new_n res
+		    then gen_name (succ n)
+		    else (succ n, new_n)
 		in
-		  try
-		    let dsts' = SMap.find opp map in
-		    let folder acc (np, oths') =
-		      let oths_np =
-			List.filter (fun e -> List.memq e oths) oths'
-		      in
-		      let nproc' =
-			let p1 = denormalize np in
-			let p2 = denormalize dst in
-			let oths_p =
-			  List.map (fun np -> denormalize (res, np, renames)) oths_np
-			in
-			let p =
-			  List.fold_left (fun acc p -> Par (p, acc)) Silent
-			    (p1 :: p2 :: oths_p)
-			in
-			  normalize p
-		      in
-			TSet.add (orig_nproc, T_Tau, nproc') acc
-		    in
-		      (new_map', List.fold_left folder set' dsts')
-		  with Not_found -> (new_map', set')
+		let (new_cnt, new_name) = gen_name cnt in
+		  (new_cnt,
+		   List.map (fun np -> nproc_subst np name new_name)
+		     acc_oths,
+		   SSet.add new_name (SSet.remove name acc_oths_res))
 	      in
-		match lab with
-		  | T_Tau -> acc'
-		  | T_In n -> add_taus (n ^ "?") (n ^ "!")
-		  | T_Out n -> add_taus (n ^ "!") (n ^ "?")
+	      let (_, new_oths, new_oths_res) =
+		SSet.fold folder_oths np_forbid (0, oths_np, res)
+	      in
+		renormalize (SSet.union new_in_res new_oths_res,
+			     NPar (new_in :: new_oths))
 	    in
-	      TSet.fold folder' elt_set acc
+	      TSet.add (src, lab, new_dst) acc
 	  in
-	    snd (List.fold_left folder (SMap.empty, set_par) set_simpl)
+	    (TSet.fold folder nexts acc_par, (nexts, oths_np) :: acc_simpl)
+	in
+	  List.fold_left folder (TSet.empty, []) nps
+      in
+      let folder ((map, _) as acc) (elt_set, oths) =
+	let folder' (_, lab, dst) ((map', set') as acc') =
+	  let add_taus org opp =
+	    let new_map' =
+	      try SMap.add org ((dst,oths) :: SMap.find org map') map'
+	      with Not_found -> SMap.add org [(dst,oths)] map'
+	    in
+	      try
+		let dsts' = SMap.find opp map in
+		let folder acc (np, oths') =
+		  let oths_np =
+		    List.filter (fun e -> List.memq e oths) oths'
+		  in
+		  let nproc' =
+		    let p1 = denormalize np in
+		    let p2 = denormalize dst in
+		    let oths_p =
+		      List.map (fun np -> denormalize (res, np)) oths_np
+		    in
+		    let p =
+		      List.fold_left (fun acc p -> Par (p, acc)) Silent
+			(p1 :: p2 :: oths_p)
+		    in
+		      normalize p
+		  in
+		    TSet.add (orig_nproc, T_Tau, nproc') acc
+		in
+		  (new_map', List.fold_left folder set' dsts')
+	      with Not_found -> (new_map', set')
+	  in
+	    match lab with
+	    | T_Tau -> acc'
+	    | T_In n -> add_taus (n ^ "?") (n ^ "!")
+	    | T_Out n -> add_taus (n ^ "!") (n ^ "?")
+	in
+	  TSet.fold folder' elt_set acc
+      in
+	snd (List.fold_left folder (SMap.empty, set_par) set_simpl)
   in
-  let derivs = f orig_res orig_np orig_rename in
-    renames orig_rename (restrict orig_res derivs)
+  let derivs = f orig_res orig_np in
+    restrict orig_res derivs
 ;;
 
 let lts defs p =

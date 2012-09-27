@@ -201,7 +201,7 @@ let minimize defs proc =
       TsSet.fold (fun t acc -> t :: acc) transitions []
 
 let is_fbisimilar defs p1 p2 =
-  let root = PState(true,(SSet.empty,NSilent,[])) in
+  let root = PState(true,(SSet.empty,NSilent)) in
   let pst1 = PState(false, p1) in
   let pst2 = PState(false, p2) in
   let init_graph =
