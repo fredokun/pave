@@ -63,12 +63,41 @@ let rec nfreeNames = function
       List.fold_left (fun acc np -> SSet.union (nfreeNames np) acc)
 	SSet.empty nps
 
+(**
 let simplify (res, nproc, renames) =
   let rec simplify_ps cons ps =
     let folder ps' p =
       let p' = sub_simplify p in
 	match p' with
 	  | NSilent -> ps'
+	  | _ -> p' :: ps'
+    in
+      match List.fold_left folder [] ps with
+        | [] -> NSilent
+        | [p] -> p
+        | ps' -> cons ps'
+  and sub_simplify np =
+    match np with
+      | NSilent | NCall (_, _) -> np
+      | NPrefix (a,p) -> NPrefix (a, sub_simplify p)
+      | NSum ps -> simplify_ps (fun ps' -> NSum ps') ps
+      | NPar ps -> simplify_ps (fun ps' -> NPar ps') ps
+  in
+    (res, sub_simplify nproc, renames)
+**)
+
+let simplify (res, nproc, renames) =
+  let rec simplify_ps cons ps =
+    let folder ps' p =
+      let p' = sub_simplify p in
+	match p' with
+	  | NSilent -> ps'
+	  | NSum l -> (match cons [] with
+	      | NSum _ -> l @ ps'
+	      | _ -> p' :: ps')
+	  | NPar l -> (match cons [] with
+	      | NSum _ -> l @ ps'
+	      | _ -> p' :: ps')
 	  | _ -> p' :: ps'
     in
       match List.fold_left folder [] ps with
