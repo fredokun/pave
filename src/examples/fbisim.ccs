@@ -1,8 +1,6 @@
 bisim ? a?||b? ~ a?,b? + b?,a?
 fbisim ? a?||b? ~ a?,b? + b?,a?
 
-
-
 def Switch = Switch(off);
 def Switch(off) = on?,Switch(on);
 def Switch(on) = off?,Switch(off);

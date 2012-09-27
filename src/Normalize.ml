@@ -30,13 +30,13 @@ let string_of_nprocess (res, nproc) =
     | NSum(ps) -> string_of_collection "(" ")" "+" string_of_nproc ps
     | NPar(ps) -> string_of_collection "(" ")" "||" string_of_nproc ps
     | NCall(d,vs) -> d ^ (string_of_args string_of_value vs)
-    | NRename (var,name,p) -> sprintf "%s[%s/%s]" name var (string_of_nproc p)
+    | NRename (var,name,p) -> sprintf "%s[%s/%s]" (string_of_nproc p) name var
   in
     if SSet.is_empty res
     then string_of_nproc nproc
     else
       "new" ^ (string_of_args (fun x -> x) (SSet.elements res)) ^ "[" ^
-	(string_of_nproc nproc) ^ "]" ^	(string_of_nproc nproc)
+	(string_of_nproc nproc) ^ "]"
 	
 let is_normalized (_, nproc,_) =
   let rec norm = function

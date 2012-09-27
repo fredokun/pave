@@ -55,13 +55,13 @@ let derivatives defs ((orig_res, orig_np) as orig_nproc) =
       TSet.filter filter derivs
   in
   let renames var name derivs=
-    let folder (src, lab, dest) acc =
+    let folder (src, lab, (dres,dest)) acc =
       let lab' = match lab with
         | T_Tau -> T_Tau
         | T_In n -> T_In (if n = var then name else n)
         | T_Out n -> T_Out (if n = var then name else n)
       in
-        TSet.add (src, lab', dest) acc
+        TSet.add (src, lab', (dres,NRename(var,name,dest))) acc
     in
       TSet.fold folder derivs TSet.empty
   in
