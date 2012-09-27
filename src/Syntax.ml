@@ -110,7 +110,9 @@ let rec freeNames = function
   | Sum (proc1, proc2) | Par (proc1, proc2) ->
       SSet.union (freeNames proc1) (freeNames proc2)
   | Res (name, proc) -> SSet.remove name (freeNames proc)
-  | Rename (_ , _ , proc) ->  freeNames proc    (* XXX: is this true ? *)
+  | Rename (old , value , proc) ->  SSet.add old (SSet.add value (freeNames proc))    
+    (* old and value are free because they are not handled directly in the syntax
+       (cf.  examples/renamesem.ccs *)
 
 (* boundNames: process -> SSet.t *)
 let boundNames proc =
@@ -119,7 +121,7 @@ let boundNames proc =
     | Prefix (_, proc) -> f proc
     | Sum (proc1, proc2) | Par (proc1, proc2) -> SSet.union (f proc1) (f proc2)
     | Res (name, proc) -> SSet.add name (f proc)
-    | Rename (_,_,proc) -> f proc  (* XXX: is this true ? *)
+    | Rename (_,_,proc) -> f proc  (* ok because renaming is semantic *)
   in
     f proc
 
@@ -144,8 +146,10 @@ let substPrefix p m n = match p with
   | In(a) -> if a = n then (In m) else (In a)
   | Out(a) -> if a = n then (Out m) else (Out a)
   
+let substName a b c = if a = c then b else a 
+
 let substValue v m n = match v with
-  | Name a -> if a = n then (Name m) else (Name a)
+  | Name a -> Name (substName a m n)
   | _ -> v
 	
 let rec subst p m (* overrides *) n = 
@@ -162,10 +166,7 @@ let rec subst p m (* overrides *) n =
 	   in Res(fname, (subst (subst q fname a) m n))
       else Res(a,(subst q m n))
     | Call(d,vs) -> Call(d,(List.map (fun v -> substValue v m n) vs))
-    | Rename (old,value,q) -> if old = n 
-                               then Rename (old,value,q)
-                               else Rename (old,value,(subst q m n))
-
+    | Rename (old,value,q) -> Rename(substName old m n,substName value m n,subst q m n) 
 
 let rec substs p ms ns = match (ms,ns) with
   | ([],[]) -> p
