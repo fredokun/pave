@@ -19,28 +19,24 @@ type nproc =
   | NSum of nproc list
   | NPar of nproc list
   | NCall of string * value list
+  | NRename of name * name * nproc
 
-type nprocess = SSet.t * nproc * (string*name) list
+type nprocess = SSet.t * nproc
 
-let string_of_nprocess (res, nproc, renames) =
+let string_of_nprocess (res, nproc) =
   let rec string_of_nproc = function
     | NSilent -> "0"
     | NPrefix(a,p) -> sprintf "%s.%s" (string_of_prefix a) (string_of_nproc p)
     | NSum(ps) -> string_of_collection "(" ")" "+" string_of_nproc ps
     | NPar(ps) -> string_of_collection "(" ")" "||" string_of_nproc ps
     | NCall(d,vs) -> d ^ (string_of_args string_of_value vs)
+    | NRename (var,name,p) -> sprintf "%s[%s/%s]" name var (string_of_nproc p)
   in
     if SSet.is_empty res
-    then 
-      match renames with	
-	|  [] -> (string_of_nproc nproc)
-	| _ ->   "[" ^ (string_of_nproc nproc) ^"]"^  (string_of_collection "{" "}" ";" (fun (target,value) -> value^"/"^target) renames)  
+    then string_of_nproc nproc
     else
-      match renames with	
-	|  [] -> "new" ^ (string_of_args (fun x -> x) (SSet.elements res)) ^ "[" ^
-	  (string_of_nproc nproc) ^ "]" ^	(string_of_nproc nproc)
-  	| _ ->     "new" ^ (string_of_args (fun x -> x) (SSet.elements res)) ^ "[[" ^
-	(string_of_nproc nproc) ^ "]" ^ (string_of_collection "{" "}" ";" (fun (target,value) -> value^"/"^target) renames) ^"]"
+      "new" ^ (string_of_args (fun x -> x) (SSet.elements res)) ^ "[" ^
+	(string_of_nproc nproc) ^ "]" ^	(string_of_nproc nproc)
 	
 let is_normalized (_, nproc,_) =
   let rec norm = function
@@ -50,6 +46,7 @@ let is_normalized (_, nproc,_) =
     | NPar ps ->
 	List.for_all (fun p -> match p with | NPar _ -> false | _ -> norm p) ps
     | NSilent | NCall (_, _) -> true
+    | NRename (_,_,q) -> norm q
   in
     norm nproc
 
@@ -62,33 +59,11 @@ let rec nfreeNames = function
   | NSum nps | NPar nps ->
       List.fold_left (fun acc np -> SSet.union (nfreeNames np) acc)
 	SSet.empty nps
+  | NRename(var,name,p) -> SSet.add name (SSet.add var (nfreeNames p))
 
-(**
-let simplify (res, nproc, renames) =
+let simplify (res, nproc) =
   let rec simplify_ps cons ps =
-    let folder ps' p =
-      let p' = sub_simplify p in
-	match p' with
-	  | NSilent -> ps'
-	  | _ -> p' :: ps'
-    in
-      match List.fold_left folder [] ps with
-        | [] -> NSilent
-        | [p] -> p
-        | ps' -> cons ps'
-  and sub_simplify np =
-    match np with
-      | NSilent | NCall (_, _) -> np
-      | NPrefix (a,p) -> NPrefix (a, sub_simplify p)
-      | NSum ps -> simplify_ps (fun ps' -> NSum ps') ps
-      | NPar ps -> simplify_ps (fun ps' -> NPar ps') ps
-  in
-    (res, sub_simplify nproc, renames)
-**)
-
-let simplify (res, nproc, renames) =
-  let rec simplify_ps cons ps =
-    let folder ps' p =
+    let simplify_one ps' p =
       let p' = sub_simplify p in
 	match p' with
 	  | NSilent -> ps'
@@ -100,30 +75,32 @@ let simplify (res, nproc, renames) =
 	      | _ -> p' :: ps')
 	  | _ -> p' :: ps'
     in
-      match List.fold_left folder [] ps with
-        | [] -> NSilent
-        | [p] -> p
-        | ps' -> cons ps'
+      match List.fold_left simplify_one [] ps with
+      | [] -> NSilent
+      | [p] -> p
+      | ps' -> cons ps'
   and sub_simplify np =
     match np with
-      | NSilent | NCall (_, _) -> np
-      | NPrefix (a,p) -> NPrefix (a, sub_simplify p)
-      | NSum ps -> simplify_ps (fun ps' -> NSum ps') ps
-      | NPar ps -> simplify_ps (fun ps' -> NPar ps') ps
+    | NSilent | NCall (_, _) -> np
+    | NPrefix (a,p) -> NPrefix (a, sub_simplify p)
+    | NSum ps -> simplify_ps (fun ps' -> NSum ps') ps
+    | NPar ps -> simplify_ps (fun ps' -> NPar ps') ps
+    | NRename (var,name,p) -> NRename (var,name,sub_simplify p)
   in
-    (res, sub_simplify nproc, renames)
+    (res, sub_simplify nproc)
 
-let denormalize (res, nproc, renames) =
-  let rec f = function
+let denormalize (res, nproc) =
+  let rec denorm_sub = function
     | NSilent -> Silent
-    | NPrefix(a,p) -> Prefix (a, f p)
+    | NPrefix(a,p) -> Prefix (a, denorm_sub p)
     | NSum(ps) ->
-	List.fold_right (fun p q -> Sum(p,q)) (List.map f ps) Silent
+	List.fold_right (fun p q -> Sum(p,q)) (List.map denorm_sub ps) Silent
     | NPar(ps) ->
-	List.fold_right (fun p q -> Par(p,q)) (List.map f ps) Silent
+	List.fold_right (fun p q -> Par(p,q)) (List.map denorm_sub ps) Silent
     | NCall(d,vs) -> Call(d,vs)
+    | NRename(var,name,p) -> Rename (var,name,denorm_sub p)
   in
-    List.fold_left (fun p (old,value) -> Rename(old,value,p)) (SSet.fold (fun n p -> Res (n, p)) res (f nproc) ) renames
+    SSet.fold (fun n p -> Res (n, p)) res (denorm_sub nproc)
       
 (***)
 let rec mem_target a list = 
@@ -142,7 +119,6 @@ let simple_normalize proc =
   let init_map = SSet.fold (fun n -> SMap.add n n) frees SMap.empty in
   let counter = ref 0 in
   let nus = ref SSet.empty in
-  let renames = ref [] in
   let init_map' = ref init_map in
   let rec gen () =
     let var = "f" ^ (string_of_int !counter) in
@@ -150,38 +126,25 @@ let simple_normalize proc =
       if SSet.mem var frees || SSet.mem var !nus then gen ()
       else ( nus := SSet.add var !nus ; var )
   in
-  let rec f map = function
+  let rec snorm_one map = function
     | Silent -> Silent
-    | Prefix (Tau, proc) -> Prefix (Tau, f map proc)
-    | Prefix (In name, proc) -> Prefix (In (SMap.find name map), f map proc)
-    | Prefix (Out name, proc) ->  Prefix (Out (SMap.find name map), f map proc)
-    | Sum (proc1, proc2) ->  Sum(f map proc1, f map proc2)
-    | Par (proc1, proc2) -> Par(f map proc1, f map proc2)
+    | Prefix (Tau, proc) -> Prefix (Tau, snorm_one map proc)
+    | Prefix (In name, proc) -> Prefix (In (SMap.find name map), snorm_one map proc)
+    | Prefix (Out name, proc) ->  Prefix (Out (SMap.find name map), snorm_one map proc)
+    | Sum (proc1, proc2) ->  Sum(snorm_one map proc1, snorm_one map proc2)
+    | Par (proc1, proc2) -> Par(snorm_one map proc1, snorm_one map proc2)
     | Res (name, proc) -> 
       let fname = gen() in
       let
 	  map' = SMap.add name fname map
       in
         init_map' := SMap.add name fname map;
-        f map' proc
+        snorm_one map' proc
     | Call (name, args) -> Call (name, args)
-    | Rename (old,value,proc) ->  Rename(old,value, f map proc)
+    | Rename (old,value,proc) ->  Rename(old,value, snorm_one map proc)
   in
   let tmpproc =
-    f init_map proc 
-  in
-  let rec gen2 () = 
-    let var = "f" ^ (string_of_int !counter) in
-      incr counter;
-      if SSet.mem var frees || mem_value var !renames || SSet.mem var !nus then gen2 ()
-      else  var 
-  in
-  let checkname name = 
-    if SSet.mem name !nus || mem_value name !renames  || SSet.mem name frees 
-    then 
-      gen2()
-    else
-      name
+    snorm_one init_map proc 
   in
   let findname name map =  
     if SSet.mem name !nus 
@@ -190,49 +153,36 @@ let simple_normalize proc =
     else
       SMap.find name map
   in
-  let rec g map = function 
+  let rec norm_sub map = function 
     | Silent -> NSilent
-    | Prefix (Tau, proc) -> NPrefix (Tau, g map proc)
-    | Prefix (In name, proc) -> NPrefix (In (findname name map), g map proc)
-    | Prefix (Out name, proc) -> NPrefix (Out (findname name map), g map proc)
+    | Prefix (Tau, proc) -> NPrefix (Tau, norm_sub map proc)
+    | Prefix (In name, proc) -> NPrefix (In (findname name map), norm_sub map proc)
+    | Prefix (Out name, proc) -> NPrefix (Out (findname name map), norm_sub map proc)
     | Sum (proc1, proc2) ->
-	begin match (g map proc1, g map proc2) with
+	begin match (norm_sub map proc1, norm_sub map proc2) with
 	  | (NSum sub1, NSum sub2) -> NSum (sub1 @ sub2)
 	  | (NSum sub1, nproc2) -> NSum (nproc2 :: sub1)
 	  | (nproc1, NSum sub2) -> NSum (nproc1 :: sub2)
 	  | (nproc1, nproc2) -> NSum [ nproc1 ; nproc2 ]
 	end
     | Par (proc1, proc2) ->
-	begin match (g map proc1, g map proc2) with
+	begin match (norm_sub map proc1, norm_sub map proc2) with
 	  | (NPar sub1, NPar sub2) -> NPar (sub1 @ sub2)
 	  | (NPar sub1, nproc2) -> NPar (nproc2 :: sub1)
 	  | (nproc1, NPar sub2) -> NPar (nproc1 :: sub2)
 	  | (nproc1, nproc2) -> NPar [ nproc1 ; nproc2 ]
 	end
-    | Res (_, proc) -> g map proc
+    | Res (_, proc) -> norm_sub map proc
     | Call (name, args) -> NCall (name, args)
-    | Rename (old,value,proc) ->
-      if(SMap.mem old map)
-      then
-	let valuename = checkname value
-	in
-	let fname = gen2()
-	in
-	begin 
-	  renames :=  (fname,valuename)::!renames;
-	  g (SMap.add old fname map) proc
-	end
-      else
-	g map proc
+    | Rename (old,value,proc) -> NRename (findname old map, findname value map, norm_sub map proc)
   in
-  let nproc = g init_map tmpproc in
-  let nproc_frees = freeNames (denormalize (SSet.empty, nproc, !renames)) in
-  let renames = !renames in
+  let nproc = norm_sub init_map tmpproc in
+  let nproc_frees = freeNames (denormalize (SSet.empty, nproc)) in
   let nus = SSet.inter !nus nproc_frees in
-    ((nus, nproc, renames), frees)
+    ((nus, nproc), frees)
 ;;
 
-let complex_normalize ((bounded : SSet.t), nproc, renames) frees =
+let complex_normalize ((bounded : SSet.t), nproc) frees =
   let (bnd1, bnd2) =
     let rec create s n =
       let name = s ^ (string_of_int n) in
@@ -246,6 +196,7 @@ let complex_normalize ((bounded : SSet.t), nproc, renames) frees =
       | NPrefix (pref, nproc) -> NPrefix (pref, norm nproc)
       | NSum nprocs -> NSum (List.sort compare (List.map norm nprocs))
       | NPar nprocs -> NPar (List.sort compare (List.map norm nprocs))
+      | NRename (var,name,nproc) -> NRename (var,name,norm nproc)
   in
   let abstract_bounded bnd =
     let prefix_img name =
@@ -261,17 +212,12 @@ let complex_normalize ((bounded : SSet.t), nproc, renames) frees =
 	| NPrefix (Out name, np) -> NPrefix (Out (prefix_img name), f np)
 	| NSum nps -> NSum (List.map f nps)
 	| NPar nps -> NPar (List.map f nps)
+        | NRename (var,name,np) -> NRename (prefix_img var, prefix_img name, f np)
     in
       (norm (f nproc), bnd)
   in
   let (name_map, new_bounded) =
     let free_map = SSet.fold (fun x -> SMap.add x x) frees SMap.empty in
-    let rec add_rename renolist ((map,bnds) as acc) =
-      match renolist with 
-	| [] -> acc
-	| (old,_)::tl
-	  ->    add_rename tl (SMap.add old old map,bnds) 
-    in
     let rec add_bounded apl cnt ((map, bnds) as acc) =
       match apl with
 	| [] -> acc
@@ -286,7 +232,7 @@ let complex_normalize ((bounded : SSet.t), nproc, renames) frees =
     let comp (x, _) (y, _) = compare x y in
     let abstract_procs = List.map abstract_bounded (SSet.elements bounded) in
     let sorted_aprocs = List.sort comp abstract_procs in
-      add_rename renames (add_bounded sorted_aprocs 0 (free_map, SSet.empty))
+      add_bounded sorted_aprocs 0 (free_map, SSet.empty)
   in
   let rec rename np =
     match np with
@@ -298,8 +244,11 @@ let complex_normalize ((bounded : SSet.t), nproc, renames) frees =
 	  NPrefix (Out (SMap.find name name_map), rename np)
       | NSum nps -> NSum (List.map rename nps)
       | NPar nps -> NPar (List.map rename nps)
+      | NRename(var,name,np) -> NRename(SMap.find var name_map,
+                                       SMap.find name name_map,
+                                       rename np)
   in
-    (new_bounded, norm (rename nproc), renames)
+    (new_bounded, norm (rename nproc))
 ;;
 
 let normalize proc =
@@ -310,11 +259,11 @@ let normalize proc =
 ;;
 
 let renormalize nprocess =
-  let (res', nproc', renames') = simplify nprocess in
+  let (res', nproc') = simplify nprocess in
   let internals = nfreeNames nproc' in
   let frees = SSet.diff internals res' in
   let res = SSet.inter res' internals in
-    complex_normalize (res, nproc', renames') frees
+    complex_normalize (res, nproc') frees
 ;;
 
 (***)
@@ -329,6 +278,7 @@ let nproc_subst nproc m n =
       | NPrefix (Out x, np) -> NPrefix (Out (rename x), np)
       | NSum nps -> NSum (List.map f nps)
       | NPar nps -> NPar (List.map f nps)
+      | NRename (var,name,np) -> NRename (rename var, rename name, np)
   in
     f nproc
 
