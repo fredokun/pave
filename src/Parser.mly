@@ -6,9 +6,12 @@
     | [] -> p
     | n::ns' -> Res(n,(mkRes ns' p))
 
-  let rec mkRename ns p = match ns with
+  let mkRename ns p = 
+    let rec ren = function
     | [] -> p
-    | (old,value) :: ns' -> Rename(old,value,(mkRename ns' p))
+    | (old,value) :: ns' -> Rename(old,value,(ren ns'))
+    in
+    ren (List.rev ns)  
 %}
 
 /* reserved keywords */
@@ -47,20 +50,20 @@
 
 %token EOF
 
-/* types */
+  /* types */
 %start script
 %type <bool> script
 %type <process> process
 %type <prefix> prefix
 %type <definition> definition
 
-/* grammar */
+  /* grammar */
 %%
-script:
+    script:
   | EOF { false }
   | statement script { true }
 
-statement:
+      statement:
   | definition                     { Control.handle_definition $1 }
   | NORM process                   { Control.handle_normalization $2 }
   | STRUCT process EQEQ process    { Control.handle_struct_congr $2 $4 }
@@ -72,7 +75,7 @@ statement:
   | MINI process                   { Control.handle_minimization $2 }
   | COMMAND                        { Control.handle_command $1 }
 
-process:
+      process:
   | INT { if $1 = 0 then Silent else failwith "Only 0 at end" }
   | END { Silent }
   | prefix COMMA process {  Prefix ($1,$3) }
@@ -86,28 +89,28 @@ process:
   | LPAREN process RPAREN { $2 }
   | LBRACKET process RBRACKET { $2 }
 
-prefix:
+      prefix:
   | TAU       { Tau }
   | IDENT OUT { Out($1) }
   | IDENT IN  { In($1) }
 
-list_of_renames :
+      list_of_renames :
   | IDENT DIV IDENT { [($3,$1)] }
   | IDENT DIV IDENT COMMA list_of_renames { ($3,$1) :: $5 }
 
-list_of_names:
+      list_of_names:
   | IDENT { [$1] }
   | IDENT COMMA list_of_names { $1::$3 }
 
-list_of_values:
+      list_of_values:
   | /* empty */ { [] }
   | value list_of_values { $1::$2 }
 
-definition:
+      definition:
   | DEF IDENT LPAREN list_of_values RPAREN EQUAL process {Definition($2,$4,$7)}
   | DEF IDENT EQUAL process { Definition($2,[],$4) }
 
-value:
+      value:
   | TRUE  { Bool true }
   | FALSE { Bool false }
   | INT   { Int $1 }

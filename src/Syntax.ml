@@ -42,12 +42,12 @@ type process =
 
 let rec string_of_process = function
   | Silent -> "0"
-  | Prefix(a,p) -> sprintf "%s.%s" (string_of_prefix a) (string_of_process p)
+  | Prefix(a,p) -> sprintf "%s,%s" (string_of_prefix a) (string_of_process p)
   | Sum(p,q) -> sprintf "(%s+%s)" (string_of_process p) (string_of_process q)
   | Par(p,q) -> sprintf "(%s||%s)" (string_of_process p) (string_of_process q)
   | Res(n,p) -> sprintf "new(%s)[%s]" n (string_of_process p)
   | Call(d,vs) -> d ^ (string_of_args string_of_value vs)
-  | Rename(old,value,p) -> sprintf "%s [ %s/%s ]" (string_of_process p)  value old
+  | Rename(old,value,p) -> sprintf "(%s)[%s/%s]" (string_of_process p)  value old
 
 (* Définitions de processus *)
 type definition = Definition of string * value list * process

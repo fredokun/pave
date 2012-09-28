@@ -26,11 +26,11 @@ type nprocess = SSet.t * nproc
 let string_of_nprocess (res, nproc) =
   let rec string_of_nproc = function
     | NSilent -> "0"
-    | NPrefix(a,p) -> sprintf "%s.%s" (string_of_prefix a) (string_of_nproc p)
+    | NPrefix(a,p) -> sprintf "%s,%s" (string_of_prefix a) (string_of_nproc p)
     | NSum(ps) -> string_of_collection "(" ")" "+" string_of_nproc ps
     | NPar(ps) -> string_of_collection "(" ")" "||" string_of_nproc ps
     | NCall(d,vs) -> d ^ (string_of_args string_of_value vs)
-    | NRename (var,name,p) -> sprintf "%s[%s/%s]" (string_of_nproc p) name var
+    | NRename (var,name,p) -> sprintf "(%s)[%s/%s]" (string_of_nproc p) name var
   in
     if SSet.is_empty res
     then string_of_nproc nproc
