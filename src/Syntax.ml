@@ -103,16 +103,23 @@ let rec namesOfValues vs =
 
 (* freeNames: process -> SSet.t *)
 let rec freeNames = function
-  | Call (_, _) | Silent -> SSet.empty
+  | Call (_, vs) -> 
+    List.fold_left (fun fn v -> match v with
+    | Name n -> SSet.add n fn
+    | _ -> fn) SSet.empty vs
+  | Silent -> SSet.empty
   | Prefix (Tau, proc) -> freeNames proc
   | Prefix (In name, proc) | Prefix (Out name, proc) ->
       SSet.add name (freeNames proc)
   | Sum (proc1, proc2) | Par (proc1, proc2) ->
       SSet.union (freeNames proc1) (freeNames proc2)
   | Res (name, proc) -> SSet.remove name (freeNames proc)
-  | Rename (old , value , proc) ->  SSet.add old (SSet.add value (freeNames proc))    
-    (* old and value are free because they are not handled directly in the syntax
-       (cf.  examples/renamesem.ccs *)
+  | Rename (old , value , proc) ->  
+    let fn = freeNames proc
+    in
+      if SSet.mem old fn
+      then SSet.add value (SSet.remove old fn)
+      else fn
 
 (* boundNames: process -> SSet.t *)
 let boundNames proc =
@@ -121,7 +128,7 @@ let boundNames proc =
     | Prefix (_, proc) -> f proc
     | Sum (proc1, proc2) | Par (proc1, proc2) -> SSet.union (f proc1) (f proc2)
     | Res (name, proc) -> SSet.add name (f proc)
-    | Rename (_,_,proc) -> f proc  (* ok because renaming is semantic *)
+    | Rename (_,_,proc) -> f proc
   in
     f proc
 

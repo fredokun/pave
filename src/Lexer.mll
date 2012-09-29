@@ -42,6 +42,9 @@ let cmd_fbisim = "fbisim"
 let cmd_deriv = "deriv"
 let cmd_lts = "lts"
 let cmd_mini = "mini"
+let cmd_free = "free"
+let cmd_bound = "bound"
+let cmd_names = "names"
 
   rule token = parse
     | ws
@@ -83,6 +86,9 @@ let cmd_mini = "mini"
     | cmd_deriv { DERIV }
     | cmd_lts { LTS }
     | cmd_mini { MINI }
+    | cmd_free { FREE }
+    | cmd_bound { BOUND }
+    | cmd_names { NAMES }
     | command as cmd
 	{ COMMAND (cmd) }
     | ident as id                   

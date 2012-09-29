@@ -29,6 +29,9 @@
 %token DERIV
 %token LTS
 %token MINI
+%token FREE
+%token BOUND
+%token NAMES
 
 /* inturals */
 %token <int> INT
@@ -73,6 +76,9 @@
   | DERIV process                  { Control.handle_deriv $2 }
   | LTS process                    { Control.handle_lts $2 }
   | MINI process                   { Control.handle_minimization $2 }
+  | FREE process                   { Control.handle_free $2 }
+  | BOUND process                   { Control.handle_bound $2 }
+  | NAMES process                   { Control.handle_names $2 }
   | COMMAND                        { Control.handle_command $1 }
 
       process:

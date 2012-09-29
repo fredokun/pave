@@ -33,6 +33,15 @@ let timing operation =
         in
         (result, end_time -. start_time) 
 
+let handle_free proc =
+  printf "%s\n" (string_of_set (fun v -> v) (freeNames proc))
+
+let handle_bound proc =
+  printf "%s\n" (string_of_set (fun v -> v) (boundNames proc))
+
+let handle_names proc =
+  printf "%s\n" (string_of_set (fun v -> v) (names proc))
+
 let handle_normalization proc =
   printf "Normalize process...\n%!";
   let proc',time = timing (fun () -> normalize proc)
