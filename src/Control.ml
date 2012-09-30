@@ -21,6 +21,8 @@ Command summary:\n\
   :quit                   -> quit the program\n\
 "
 
+let script_mode = ref false ;;
+
 let handle_command = function
   | ":help" -> printf "%s\n%!" help_me;
   | ":quit" -> printf "bye bye !\n%!" ; exit 0
@@ -34,15 +36,23 @@ let timing operation =
         (result, end_time -. start_time) 
 
 let handle_free proc =
-  printf "%s\n" (string_of_set (fun v -> v) (freeNames proc))
+  if !script_mode then
+    printf "> free %s\n%!" (string_of_process proc) ;
+  printf "%s\n%!" (string_of_set (fun v -> v) (freeNames proc))
 
 let handle_bound proc =
-  printf "%s\n" (string_of_set (fun v -> v) (boundNames proc))
+  if !script_mode then
+    printf "> bound %s\n%!" (string_of_process proc) ;
+  printf "%s\n%!" (string_of_set (fun v -> v) (boundNames proc))
 
 let handle_names proc =
-  printf "%s\n" (string_of_set (fun v -> v) (names proc))
+  if !script_mode then
+    printf "> names %s\n%!" (string_of_process proc) ;
+  printf "%s\n%!" (string_of_set (fun v -> v) (names proc))
 
 let handle_normalization proc =
+  if !script_mode then
+    printf "> norm %s\n%!" (string_of_process proc) ;
   printf "Normalize process...\n%!";
   let proc',time = timing (fun () -> normalize proc)
   in
@@ -50,6 +60,8 @@ let handle_normalization proc =
   printf "(elapsed time=%fs)\n%!" time 
 
 let handle_struct_congr p q =
+  if !script_mode then
+    printf "> struct %s == %s\n%!" (string_of_process p) (string_of_process q) ;
   printf "Check structural congruence...\n%!";
   let ok, time = timing (fun () -> p === q)
   in
@@ -61,6 +73,9 @@ let handle_struct_congr p q =
 let global_definition_map = Hashtbl.create 64
 
 let handle_deriv p =
+  if !script_mode then
+    printf "> deriv %s\n%!" (string_of_process p) ;
+  printf "Compute derivatives...\n%!";
   let op = fun () ->
     let np = normalize p in
     derivatives global_definition_map np 
@@ -77,8 +92,10 @@ let register_definition def =
   Hashtbl.replace global_definition_map (string_of_def_header def) def
 
 let handle_definition def =
+  if !script_mode then
+    printf "> %s\n%!" (string_of_definition def) ;
   register_definition def;
-  printf "Definition registered\n%!"
+  printf "Definition '%s' registered\n%!" (def_name def)
 
 let dot_style_format (p, l, p') =
   sprintf "\"%s\" -> \"%s\" [ label = \"%s\", fontcolor=red ]"
@@ -91,6 +108,8 @@ let dot_style_format' (pl, l, pl') =
     (string_of_label l)
 
 let handle_lts p =
+  if !script_mode then
+    printf "> lts %s\n%!" (string_of_process p) ;
   let transs, time = timing (fun () -> lts global_definition_map (normalize p)) 
   in
   List.iter (fun t -> printf "%s\n" (string_of_transition t)) transs;
@@ -112,6 +131,8 @@ let handle_lts p =
   printf "done\n(elapsed time=%fs)\n%!" time
 
 let handle_minimization proc =
+  if !script_mode then
+    printf "> mini %s\n%!" (string_of_process proc) ;
   printf "Minimize process...\n%!";
   let transs, time = timing (fun () ->
     let p = normalize proc in
@@ -135,7 +156,9 @@ let handle_minimization proc =
   printf "done\n(elapsed time=%fs)\n%!" time
 
 let handle_bisim p1 p2 =
-  printf "Calculate bisimilarity (slow)...\n%!";
+  if !script_mode then
+    printf "> bisim %s ~ %s\n%!" (string_of_process p1) (string_of_process p2) ;
+  printf "Calculate bisimilarity...\n%!";
   let start_time = Sys.time()
   in
   let np1 = normalize p1 in
@@ -156,6 +179,8 @@ let handle_bisim p1 p2 =
     printf "the processes are *not* bisimilar\n(elapsed time=%fs)\n%!" (end_time-.start_time)
 
 let handle_is_bisim p1 p2 =
+  if !script_mode then
+    printf "> bisim ? %s ~ %s\n%!" (string_of_process p1) (string_of_process p2) ;
   let ok,time = timing (fun () ->
     let np1 = normalize p1 in
     let np2 = normalize p2 in
@@ -166,6 +191,8 @@ let handle_is_bisim p1 p2 =
     else printf "the processes are *not* bisimilar\n(elapsed time=%fs)\n%!" time
 
 let handle_is_fbisim p1 p2 =
+  if !script_mode then
+    printf "> fbisim ? %s ~ %s\n%!" (string_of_process p1) (string_of_process p2) ;
   let ok,time = timing (fun () ->
     let np1 = normalize p1 in
     let np2 = normalize p2 in

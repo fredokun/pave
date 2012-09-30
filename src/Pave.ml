@@ -47,6 +47,7 @@ let parse_error_msg lexbuf =
 match !load_file with
   | None ->
       printf "Interactive mode... \n%!";
+    Control.script_mode := false ;
     while true do
       let lexbuf = Lexing.from_channel stdin in
 	printf "> %!";
@@ -62,6 +63,7 @@ match !load_file with
     done
   | Some file ->
       printf "Loading file %s... \n%!" file;
+    Control.script_mode := true ;
       let lexbuf = Lexing.from_channel (open_in file) in
       let rec loop () =
 	let continue = 
