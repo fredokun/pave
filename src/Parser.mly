@@ -12,6 +12,11 @@
     | (old,value) :: ns' -> Rename(old,value,(ren ns'))
     in
     ren (List.rev ns)  
+
+
+  let parse_error _ = (* Called by the parser function on error *)
+    (* print_endline s; *)
+    flush stdout
 %}
 
 /* reserved keywords */

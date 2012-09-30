@@ -36,15 +36,19 @@ printf "%s\n%!" banner;;
 match !load_file with
   | None ->
       printf "Interactive mode... \n%!";
+    while true do
       let lexbuf = Lexing.from_channel stdin in
-	while true do
-	  printf "> %!";
-	  try
-	    ignore (Parser.script Lexer.token lexbuf)
-	  with 
-	    | Failure msg -> printf "Syntax error: %s\n%!" msg;
-	    | Parsing.Parse_error -> printf "Parse error\n%!";
-	done
+	printf "> %!";
+	try
+	  ignore (Parser.script Lexer.token lexbuf)
+	with 
+	| Failure msg -> printf "Lexing error: %s\n%!" msg
+	| Parsing.Parse_error -> 
+          let p = lexbuf.Lexing.lex_curr_p in
+          let l = p.Lexing.pos_lnum in
+          let c = p.Lexing.pos_cnum - p.Lexing.pos_bol in
+            printf "Parser error at line %d char %d\n%!" l c   
+    done
   | Some file ->
       printf "Loading file %s... \n%!" file;
       let lexbuf = Lexing.from_channel (open_in file) in
@@ -53,8 +57,12 @@ match !load_file with
 	  try
 	    Parser.script Lexer.token lexbuf
 	  with 
-	    | Failure msg -> printf "Syntax error: %s\n%!" msg; true
-	    | Parsing.Parse_error -> printf "Parse error\n%!"; true
+	    | Failure msg -> printf "Syntax error: %s\n%!" msg ; true
+	    | Parsing.Parse_error -> 
+              let p = lexbuf.Lexing.lex_curr_p in
+              let l = p.Lexing.pos_lnum in
+              let c = p.Lexing.pos_cnum - p.Lexing.pos_bol in
+                printf "Parser error at line %d char %d\n%!" l c ; true  
 	in
 	  if continue then loop ();
       in
