@@ -84,93 +84,88 @@
   | NORM process                   
       { Control.handle_normalization $2 }
   | NORM error     
-      { printf "Parse error: missing process to normalize\n%!"; 
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing process to normalize") }
   | STRUCT process EQEQ process
       { Control.handle_struct_congr $2 $4 }
   | STRUCT process error
-      { printf "Parse error: missing '==' for structural congruence\n%!";
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing '==' for structural congruence") }
   | STRUCT process EQEQ error
-      { printf "Parse error: missing process after '==' for structural congruence\n%!";
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing process after '==' for structural congruence") }
   | STRUCT error 
-      { printf "Parse error: missing process before '==' for structural congruence\n%!";
-        (* raise Parsing.Parse_error *) }
+      {raise (Fatal_Parse_Error "missing process before '==' for structural congruence") }
   | BISIM IN process TILD process 
       { Control.handle_is_bisim $3 $5 }
   | BISIM IN process error
-      { printf "Parse error: missing '~' for strong bisimilarity\n%!";
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing '~' for strong bisimilarity") }
   | BISIM IN process TILD error
-      { printf "Parse error: missing process after '~' for strong bisimilarity\n%!";
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing process after '~' for strong bisimilarity") }
   | BISIM process TILD process
       { Control.handle_bisim $2 $4 }
   | BISIM process error
-      { printf "Parse error: missing '~' for strong bisimilarity\n%!";
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing '~' for strong bisimilarity") }
   | BISIM process TILD error
-      { printf "Parse error: missing process after '~' for strong bisimilarity\n%!";
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing process after '~' for strong bisimilarity") }
   | BISIM error 
-      { printf "Parse error: missing '?' or process before '~' for strong bisimilarity\n%!";
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing '?' or process before '~' for strong bisimilarity") }
   | FBISIM IN process TILD process { Control.handle_is_fbisim $3 $5 }
   | FBISIM IN process TILD process 
       { Control.handle_is_fbisim $3 $5 }
   | FBISIM IN process error
-      { printf "Parse error: missing '~' for strong bisimilarity\n%!";
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing '~' for strong bisimilarity") }
   | FBISIM IN process TILD error
-      { printf "Parse error: missing process after '~' for strong bisimilarity\n%!";
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing process after '~' for strong bisimilarity") }
   | DERIV process
       { Control.handle_deriv $2 }
   | DERIV error
-      { printf "Parse error: missing process to derivate\n%!"; 
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing process to derivate") } 
   | LTS process
       { Control.handle_lts $2 }
   | LTS error
-      { printf "Parse error: missing process for LTS\n%!"; 
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing process for LTS") } 
   | MINI process
       { Control.handle_minimization $2 }
   | MINI error
-      { printf "Parse error: missing process for minimization\n%!"; 
-        (* raise Parsing.Parse_error *) }
+      {raise (Fatal_Parse_Error "missing process for minimization") } 
   | FREE process
       { Control.handle_free $2 }
   | FREE error
-      { printf "Parse error: missing process for free names\n%!"; 
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing process for free names") } 
   | BOUND process
       { Control.handle_bound $2 }
   | BOUND error
-      { printf "Parse error: missing process for bound names\n%!"; 
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing process for bound names") } 
   | NAMES process
       { Control.handle_names $2 }
   | NAMES error
-      { printf "Parse error: missing process for names\n%!"; 
-        (* raise Parsing.Parse_error *) }
+      { raise (Fatal_Parse_Error "missing process for names") } 
   | COMMAND
       { Control.handle_command $1 }
 
       process:
-  | INT { if $1 = 0 then Silent else failwith "Only 0 at end" }
-  | END { Silent }
-  | prefix COMMA process {  Prefix ($1,$3) }
+  | INT 
+      { if $1 = 0 then Silent 
+        else raise (Fatal_Parse_Error "Only 0 can be used as Silent process") }
+  | END 
+      { Silent }
+  | prefix COMMA process 
+      {  Prefix ($1,$3) }
   | prefix error
       { raise (Fatal_Parse_Error "missing ',' after prefix") }
+  | prefix COMMA error
+      { raise (Fatal_Parse_Error (sprintf "process missing after prefix '%s'" (string_of_prefix $1))) }
   | prefix { Prefix ($1,Silent) }
   | process PAR process {  Par($1,$3) }
+  | process PAR error
+      { raise (Fatal_Parse_Error "right-hand process missing in parallel") }      
   | process PLUS process { Sum($1,$3) }
+  | process PLUS error
+      { raise (Fatal_Parse_Error "right-hand process missing in sum") }
+  | process error
+      { raise (Fatal_Parse_Error "missing parallel '||' or sum '+' symbol after process"); }
   | NEW LPAREN list_of_names RPAREN %prec UNARY process { mkRes $3 $5 }
   | IDENT LPAREN list_of_values RPAREN { Call($1,$3) }
   | IDENT { Call($1,[]) }
-  | LPAREN process RPAREN LBRACKET list_of_renames RBRACKET { mkRename $5 $2 }
+  | process LBRACKET list_of_renames RBRACKET { mkRename $3 $1 }
   | LPAREN process RPAREN { $2 }
   | LBRACKET process RBRACKET { $2 }
 
