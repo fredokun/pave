@@ -47,7 +47,9 @@ match !load_file with
           let p = lexbuf.Lexing.lex_curr_p in
           let l = p.Lexing.pos_lnum in
           let c = p.Lexing.pos_cnum - p.Lexing.pos_bol in
-            printf "Parser error at line %d char %d\n%!" l c   
+          let tok = Lexing.lexeme lexbuf
+          in
+            printf "Parser error at line %d char %d: ~%s~\n%!" l c tok 
     done
   | Some file ->
       printf "Loading file %s... \n%!" file;
@@ -62,7 +64,9 @@ match !load_file with
               let p = lexbuf.Lexing.lex_curr_p in
               let l = p.Lexing.pos_lnum in
               let c = p.Lexing.pos_cnum - p.Lexing.pos_bol in
-                printf "Parser error at line %d char %d\n%!" l c ; true  
+              let tok = Lexing.lexeme lexbuf
+              in
+                printf "Parser error at line %d char %d: ~%s~\n%!" l c tok ; true
 	in
 	  if continue then loop ();
       in
