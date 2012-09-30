@@ -116,10 +116,11 @@ let rec freeNames = function
   | Res (name, proc) -> SSet.remove name (freeNames proc)
   | Rename (old , value , proc) ->  
     let fn = freeNames proc
-    in
+    in (* XXX: this is not clear 
       if SSet.mem old fn
       then SSet.add value (SSet.remove old fn)
-      else fn
+      else fn *)
+      SSet.add old (SSet.add value fn)
 
 (* boundNames: process -> SSet.t *)
 let boundNames proc =
