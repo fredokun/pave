@@ -129,8 +129,10 @@ let simple_normalize proc =
   let rec snorm_one map = function
     | Silent -> Silent
     | Prefix (Tau, proc) -> Prefix (Tau, snorm_one map proc)
-    | Prefix (In name, proc) -> Prefix (In (SMap.find name map), snorm_one map proc)
-    | Prefix (Out name, proc) ->  Prefix (Out (SMap.find name map), snorm_one map proc)
+    | Prefix (In name, proc) -> 
+      Prefix (In (SMap.find name map), snorm_one map proc)
+    | Prefix (Out name, proc) ->
+      Prefix (Out (SMap.find name map), snorm_one map proc)
     | Sum (proc1, proc2) ->  Sum(snorm_one map proc1, snorm_one map proc2)
     | Par (proc1, proc2) -> Par(snorm_one map proc1, snorm_one map proc2)
     | Res (name, proc) -> 
@@ -141,12 +143,18 @@ let simple_normalize proc =
         init_map' := SMap.add name fname map;
         snorm_one map' proc
     | Call (name, args) -> Call (name, args)
-    | Rename (old,value,proc) ->  Rename(old,value, snorm_one map proc)
+    | Rename (old,value,proc) ->
+      let value' =
+        if SMap.mem value map
+        then SMap.find value map
+        else value
+      in
+        Rename(old,value', snorm_one map proc)
   in
   let tmpproc =
     snorm_one init_map proc 
   in
-  let findname name map =  
+  let findname name map =
     if SSet.mem name !nus 
     then 
       name
@@ -174,7 +182,13 @@ let simple_normalize proc =
 	end
     | Res (_, proc) -> norm_sub map proc
     | Call (name, args) -> NCall (name, args)
-    | Rename (old,value,proc) -> NRename (findname old map, findname value map, norm_sub map proc)
+    | Rename (old,value,proc) ->
+      let value' = 
+        if SMap.mem value map
+        then findname value map
+        else value
+      in
+      NRename (old, value', norm_sub map proc)
   in
   let nproc = norm_sub init_map tmpproc in
   let nproc_frees = freeNames (denormalize (SSet.empty, nproc)) in
@@ -244,9 +258,13 @@ let complex_normalize ((bounded : SSet.t), nproc) frees =
 	  NPrefix (Out (SMap.find name name_map), rename np)
       | NSum nps -> NSum (List.map rename nps)
       | NPar nps -> NPar (List.map rename nps)
-      | NRename(var,name,np) -> NRename(SMap.find var name_map,
-                                       SMap.find name name_map,
-                                       rename np)
+      | NRename(var,name,np) -> 
+        let name' = 
+          if SMap.mem name name_map
+          then SMap.find name name_map
+          else name
+        in
+          NRename(var,name',rename np)
   in
     (new_bounded, norm (rename nproc))
 ;;
