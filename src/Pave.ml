@@ -1,5 +1,7 @@
 open Printf
 
+open Utils
+
 let version_str = "Pave' v.1 r20120924"
 let usage = "Usage: pave <opt>"
 let banner = 
@@ -33,6 +35,15 @@ Arg.parse [
 
 printf "%s\n%!" banner;;
 
+
+let parse_error_msg lexbuf =
+  let p = lexbuf.Lexing.lex_curr_p in
+  let l = p.Lexing.pos_lnum in
+  let c = p.Lexing.pos_cnum - p.Lexing.pos_bol in
+  let tok = Lexing.lexeme lexbuf
+  in
+    printf "Parser error at line %d char %d: ~%s~\n%!" l c tok ;;
+
 match !load_file with
   | None ->
       printf "Interactive mode... \n%!";
@@ -43,13 +54,11 @@ match !load_file with
 	  ignore (Parser.script Lexer.token lexbuf)
 	with 
 	| Failure msg -> printf "Lexing error: %s\n%!" msg
+        | Fatal_Parse_Error(msg) ->
+          parse_error_msg lexbuf ;
+          printf " ==> %s\n%!" msg
 	| Parsing.Parse_error -> 
-          let p = lexbuf.Lexing.lex_curr_p in
-          let l = p.Lexing.pos_lnum in
-          let c = p.Lexing.pos_cnum - p.Lexing.pos_bol in
-          let tok = Lexing.lexeme lexbuf
-          in
-            printf "Parser error at line %d char %d: ~%s~\n%!" l c tok 
+          parse_error_msg lexbuf
     done
   | Some file ->
       printf "Loading file %s... \n%!" file;
@@ -60,13 +69,11 @@ match !load_file with
 	    Parser.script Lexer.token lexbuf
 	  with 
 	    | Failure msg -> printf "Syntax error: %s\n%!" msg ; true
+            | Fatal_Parse_Error(msg) ->
+              parse_error_msg lexbuf ;
+              printf " ==> %s\n%!" msg ; true
 	    | Parsing.Parse_error -> 
-              let p = lexbuf.Lexing.lex_curr_p in
-              let l = p.Lexing.pos_lnum in
-              let c = p.Lexing.pos_cnum - p.Lexing.pos_bol in
-              let tok = Lexing.lexeme lexbuf
-              in
-                printf "Parser error at line %d char %d: ~%s~\n%!" l c tok ; true
+              parse_error_msg lexbuf ; true
 	in
 	  if continue then loop ();
       in

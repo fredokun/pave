@@ -1,8 +1,10 @@
 /* header */
 %{
+  open Printf
+
+  open Utils
   open Syntax
 
-  open Printf
 
   let rec mkRes ns p = match ns with
     | [] -> p
@@ -16,10 +18,12 @@
     ren (List.rev ns)  
 
 
+(***
   let parse_error s = (* Called by the parser function on error *)
     print_endline s;
     flush stdout
     (* raise Parsing.Parse_error *)
+***)
 %}
 
 /* reserved keywords */
@@ -159,9 +163,7 @@
   | END { Silent }
   | prefix COMMA process {  Prefix ($1,$3) }
   | prefix error
-      { printf "HERE HERE HERE !\n%!" ;
-        parse_error "Parse error: missing ',' after prefix\n%!" ;
-        raise Parsing.Parse_error }
+      { raise (Fatal_Parse_Error "missing ',' after prefix") }
   | prefix { Prefix ($1,Silent) }
   | process PAR process {  Par($1,$3) }
   | process PLUS process { Sum($1,$3) }

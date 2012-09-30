@@ -1,5 +1,9 @@
 open Printf
 
+(* globa parser exception *)
+
+exception Fatal_Parse_Error of string ;;
+
 (* string sets and maps *)
 
 module SSet = Set.Make(String)
