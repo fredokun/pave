@@ -4,18 +4,18 @@ open Printf
 open Utils
 
 type preconstdef =
-    PConstDef of String * int
+| PConstDef of string * int
 
 let string_of_preconstdef = function
-  | PConstDef (name,value) = sprintf "const %%%s = %d" name value
+  | PConstDef (name,value) -> sprintf "const %%%s = %d" name value
   
 type pretypedef =
 | PTDefRange of string * int * int
 | PTDefEnum of string * SSet.t
     
 let string_of_pretypedef = function
-  | PTDefRange (name,min,max) = sprintf "type %s = [%d..%d]" name min max
-  | PTDefEnum (name,names) = "type " ^ name ^ " = " ^ (string_of_set (fun x -> x) names)
+  | PTDefRange (name,min,max) -> sprintf "type %s = [%d..%d]" name min max
+  | PTDefEnum (name,names) -> "type " ^ name ^ " = " ^ (string_of_set (fun x -> x) names)
   
 type preexpr =
 | PTrue
@@ -75,16 +75,16 @@ let string_of_preprefix = function
   | PIn n -> sprintf "%s!" (string_of_preexpr n)
   | POut n -> sprintf "%s?" (string_of_preexpr n)
   | PReceive (c,x,t) -> sprintf "%s?(%s:%s)" (string_of_preexpr c) x t
-  | PSend (c,e) -> sprintf "%s!%e" (string_of_preexor c) (string_of_preexpr e)
+  | PSend (c,e) -> sprintf "%s!%s" (string_of_preexpr c) (string_of_preexpr e)
 
 type preprocess =
   | PSilent
   | PPrefix of preprefix * preprocess
-  | PSum of process * preprocess
-  | PPar of process * preprocess
-  | PRes of preexpr * preprocess
+  | PSum of preprocess * preprocess
+  | PPar of preprocess * preprocess
+  | PRes of Syntax.name * preprocess
   | PCall of string * preexpr list
-  | PRename of preexpr * preexpr * process
+  | PRename of Syntax.name * Syntax.name * preprocess
   | PGuard of preexpr * preprocess
 
 let rec string_of_preprocess = function
@@ -97,14 +97,20 @@ let rec string_of_preprocess = function
   | PRename(old,value,p) -> sprintf "(%s)[%s/%s]" (string_of_preprocess p)  value old
   | PGuard(g,p) -> sprintf "when (%s) %s" (string_of_preexpr g) (string_of_preprocess p)
 
+(** TODO **)
+let process_of_preprocess : preprocess -> Syntax.process = 
+  fun preproc -> 
+    printf "Transforming process:\n%s\n%!" (string_of_preprocess preproc) ;
+    failwith "not yet implemented" 
+
 type preparam =
-  | PParam of string * string
+  | PParamVar of string * string
   | PParamBool of bool
-  | PParamName of name
+  | PParamName of Syntax.name
   | PParamInt of int
 
 let string_of_preparam = function
-  | PParam (x,t) -> sprintf "%s:%t" x t
+  | PParamVar (x,t) -> sprintf "%s:%s" x t
   | PParamBool b -> if b then "true" else "false"
   | PParamName n -> n
   | PParamInt n -> string_of_int n
@@ -117,3 +123,9 @@ let string_of_predef_header (PDefinition (name,params,_)) =
 let string_of_predefinition = function
   | PDefinition (_,_,body) as def ->
     "def " ^ (string_of_predef_header def) ^ " = " ^ (string_of_preprocess body)
+
+(** TODO **)
+let definitions_of_predefinition : predefinition -> Syntax.definition list =
+  fun predef -> 
+    printf "Transforming definition:\n%s\n%!" (string_of_predefinition predef) ;
+    failwith "not yet implemented" 

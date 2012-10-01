@@ -21,8 +21,8 @@ Command summary:\n\
   fbisim ? <proc> ~ <proc> -> check bisimilarity (fast)\n\
   mini <proc>             -> minimize process\n\
 ---\n\
-  :help                   -> this help message\n\
-  :quit                   -> quit the program\n\
+  help                   -> this help message\n\
+  quit                   -> quit the program\n\
 "
 
 let script_mode = ref false ;;
@@ -40,6 +40,20 @@ let timing operation =
      in let end_time = Sys.time()
         in
         (result, end_time -. start_time) 
+
+(** TODO **)
+let handle_constdef (const_name:string) (const_val:int) =
+  printf "(handle_constdef %s %d)\n%!" const_name const_val ;
+  failwith "not yet implemented"
+
+(** TODO **)
+let handle_typedef_range (type_name:string) (min_val:string) (max_val:string) =
+  printf "(handle_typedef_range %s %s %s)\n%!" type_name min_val max_val ;
+  failwith "not yet implemented"
+
+let handle_typedef_enum (type_name:string) (names:string list) =
+  printf "(handle_typedef_enum %s %s)\n%!" type_name (string_of_list (fun x->x) names) ;
+  failwith "not yet implemented"
 
 let handle_free proc =
   if !script_mode then

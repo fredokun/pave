@@ -54,7 +54,7 @@ match !load_file with
 	try
 	  ignore (Parser.script Lexer.token lexbuf)
 	with 
-	| Failure msg -> printf "Lexing error: %s\n%!" msg
+	| Failure msg -> printf "Failure: %s\n%!" msg
         | Fatal_Parse_Error(msg) ->
           parse_error_msg lexbuf ;
           printf " ==> %s\n%!" msg
@@ -70,7 +70,7 @@ match !load_file with
 	  try
 	    Parser.script Lexer.token lexbuf
 	  with 
-	    | Failure msg -> printf "Syntax error: %s\n%!" msg ; true
+	    | Failure msg -> printf "Failure: %s\n%!" msg ; true
             | Fatal_Parse_Error(msg) ->
               parse_error_msg lexbuf ;
               printf " ==> %s\n%!" msg ; true

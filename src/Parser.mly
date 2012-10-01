@@ -19,8 +19,8 @@
 
 
   let rec merge_prefix p q = match p with
-    | Prefix(a,Silent) -> PPrefix(a,q)
-    | Prefix(a,p') -> PPrefix(a,merge_prefix p' q)
+    | PPrefix(a,PSilent) -> PPrefix(a,q)
+    | PPrefix(a,p') -> PPrefix(a,merge_prefix p' q)
     | _ -> failwith "Not a prefixed process"
 
 (***
@@ -32,10 +32,12 @@
 %}
 
 /* reserved keywords */
-%token DEF TRUE FALSE END NEW TAU DIV WHEN
+%token DEF TRUE FALSE END NEW TAU DIV WHEN CONSTDEF TYPEDEF
 
 /* identifiers */
 %token <string> IDENT
+%token <string> CONST
+%token <string> VAR
 
 /* commands */
 %token NORM
@@ -55,14 +57,18 @@
 %token <int> INT
 
 /* punctuation */
-%token LPAREN RPAREN LBRACKET RBRACKET COMMA EQUAL EQEQ TILD INTERG
+%token LPAREN RPAREN LBRACKET RBRACKET COMMA EQUAL EQEQ TILD COLON
+%token IF THEN ELSE INF SUP INFEQ SUPEQ DIFF DOTDOT LACCOL RACCOL
 
 /* operators */
-%token PAR PLUS DOT OUT IN
+%token PAR PLUS DOT OUT IN MINUS DIV MULT MOD AND OR NOT
 
 %nonassoc RENAME
 %left PAR
-%left PLUS
+%left AND , OR
+%nonassoc INF , INFEQ, SUP, SUPEQ, DIFF, EQUAL
+%left PLUS , MINUS
+%left MULT , DIV , MOD
 %right COMMA
 %left OUT IN
 
@@ -77,7 +83,6 @@
 %type <bool> script
 %type <preprocess> process
 %type <preprefix> prefix
-%type <predefinition> definition
 %type <preexpr> expr
 
   /* grammar */
@@ -87,15 +92,30 @@
   | statement SEMICOL { true }
   | statement error { raise (Fatal_Parse_Error "missing ';' after statement") }
 
+      minmax:
+  | CONST { $1 }
+  | INT { (string_of_int $1) }
+
       statement:
   | definition                     
-      { Control.handle_definition $1 }
+      { let defs = definitions_of_predefinition $1
+        in
+          List.iter Control.handle_definition defs 
+      }
+  | CONSTDEF CONST EQUAL INT 
+      { Control.handle_constdef $2 $4 }
+  | TYPEDEF IDENT EQUAL LBRACKET minmax DOTDOT minmax RBRACKET
+      { Control.handle_typedef_range $2 $5 $7 }
+  | TYPEDEF IDENT EQUAL LACCOL list_of_names RACCOL
+      { Control.handle_typedef_enum $2 $5 }
   | NORM process                   
-      { Control.handle_normalization $2 }
+      { Control.handle_normalization (process_of_preprocess $2) }
   | NORM error     
       { raise (Fatal_Parse_Error "missing process to normalize") }
   | STRUCT process EQEQ process
-      { Control.handle_struct_congr $2 $4 }
+      { Control.handle_struct_congr 
+        (process_of_preprocess $2)
+        (process_of_preprocess $4) }
   | STRUCT process error
       { raise (Fatal_Parse_Error "missing '==' for structural congruence") }
   | STRUCT process EQEQ error
@@ -103,13 +123,17 @@
   | STRUCT error 
       {raise (Fatal_Parse_Error "missing process before '==' for structural congruence") }
   | BISIM IN process TILD process 
-      { Control.handle_is_bisim $3 $5 }
+      { Control.handle_is_bisim 
+        (process_of_preprocess $3) 
+        (process_of_preprocess $5) }
   | BISIM IN process error
       { raise (Fatal_Parse_Error "missing '~' for strong bisimilarity") }
   | BISIM IN process TILD error
       { raise (Fatal_Parse_Error "missing process after '~' for strong bisimilarity") }
   | BISIM process TILD process
-      { Control.handle_bisim $2 $4 }
+      { Control.handle_bisim 
+        (process_of_preprocess $2)
+        (process_of_preprocess $4) }
   | BISIM process error
       { raise (Fatal_Parse_Error "missing '~' for strong bisimilarity") }
   | BISIM process TILD error
@@ -117,7 +141,9 @@
   | BISIM error 
       { raise (Fatal_Parse_Error "missing '?' or process before '~' for strong bisimilarity") }
   | FBISIM IN process TILD process 
-      { Control.handle_is_fbisim $3 $5 }
+      { Control.handle_is_fbisim 
+        (process_of_preprocess $3)
+        (process_of_preprocess $5) }
   | FBISIM IN process error
       { raise (Fatal_Parse_Error "missing '~' for strong bisimilarity") }
   | FBISIM IN process TILD error
@@ -125,27 +151,27 @@
   | FBISIM error 
       { raise (Fatal_Parse_Error "missing '?' or process before '~' for strong bisimilarity") }
   | DERIV process
-      { Control.handle_deriv $2 }
+      { Control.handle_deriv (process_of_preprocess $2) }
   | DERIV error
       { raise (Fatal_Parse_Error "missing process to derivate") } 
   | LTS process
-      { Control.handle_lts $2 }
+      { Control.handle_lts (process_of_preprocess $2) }
   | LTS error
       { raise (Fatal_Parse_Error "missing process for LTS") } 
   | MINI process
-      { Control.handle_minimization $2 }
+      { Control.handle_minimization (process_of_preprocess $2) }
   | MINI error
       {raise (Fatal_Parse_Error "missing process for minimization") } 
   | FREE process
-      { Control.handle_free $2 }
+      { Control.handle_free (process_of_preprocess $2) }
   | FREE error
       { raise (Fatal_Parse_Error "missing process for free names") } 
   | BOUND process
-      { Control.handle_bound $2 }
+      { Control.handle_bound (process_of_preprocess $2) }
   | BOUND error
       { raise (Fatal_Parse_Error "missing process for bound names") } 
   | NAMES process
-      { Control.handle_names $2 }
+      { Control.handle_names (process_of_preprocess $2) }
   | NAMES error
       { raise (Fatal_Parse_Error "missing process for names") } 
   | HELP
@@ -174,7 +200,7 @@
   | process error
       { raise (Fatal_Parse_Error "missing parallel '||' or sum '+' symbol after process"); }
   | NEW LPAREN list_of_names RPAREN %prec UNARY process { mkRes $3 $5 }
-  | IDENT LPAREN list_of_expr RPAREN { PCall($1,$3) }
+  | IDENT LPAREN list_of_exprs RPAREN { PCall($1,$3) }
   | IDENT { PCall($1,[]) }
   | process rename { mkRename $2 $1 }
   | LPAREN process RPAREN { $2 }
@@ -183,8 +209,8 @@
 
       prefix:
   | TAU       { PTau }
-  | IDENT OUT { POut($1) }
-  | IDENT IN  { PIn($1) }
+  | expr OUT { POut($1) }
+  | expr IN  { PIn($1) }
   | expr OUT expr { PSend($1,$3) }
   | expr IN IDENT COLON IDENT { PReceive($1,$3,$5) }
 
@@ -199,19 +225,47 @@
   | IDENT { [$1] }
   | IDENT COMMA list_of_names { $1::$3 }
 
-      list_of_values:
-  | /* empty */ { [] }
-  | value list_of_values { $1::$2 }
-
       definition:
-  | DEF IDENT LPAREN list_of_values RPAREN EQUAL process {Definition($2,$4,$7)}
-  | DEF IDENT EQUAL process { Definition($2,[],$4) }
+  | DEF IDENT LPAREN list_of_params RPAREN EQUAL process {PDefinition($2,$4,$7)}
+  | DEF IDENT EQUAL process { PDefinition($2,[],$4) }
 
-      value:
-  | TRUE  { Bool true }
-  | FALSE { Bool false }
-  | INT   { Int $1 }
-  | IDENT { Name $1 }
+      param:
+  | TRUE { PParamBool true }
+  | FALSE { PParamBool false }
+  | INT { PParamInt $1 }
+  | IDENT COLON IDENT { PParamVar ($1,$3) }
+  | IDENT { PParamName $1 }
+
+      list_of_params:
+  | /* empty */ { [] }
+  | param list_of_params { $1::$2 }
+
+      expr:
+  | TRUE { PTrue }
+  | FALSE { PFalse }
+  | INT { PInt $1 }
+  | IDENT { PName $1 }
+  | CONST { PConst $1 }
+  | VAR { PVar $1 }
+  | NOT expr { PNot $2 }
+  | expr AND expr { PAnd ($1,$3) }
+  | expr OR expr { POr ($1,$3) }
+  | expr PLUS expr { PAdd ($1,$3) }
+  | expr MINUS expr { PSub ($1,$3) }
+  | expr MULT expr { PMul ($1,$3) }
+  | expr DIV expr { PDiv ($1,$3) }
+  | expr MOD expr { PMod ($1,$3) }
+  | expr INF expr { PInf ($1,$3) }
+  | expr SUP expr { PSup ($1,$3) }
+  | expr EQUAL expr { PEq ($1,$3) }
+  | expr DIFF expr { PNeq ($1,$3) }
+  | expr INFEQ expr { PInfEq ($1,$3) }
+  | expr SUPEQ expr { PSupEq ($1,$3) }
+  | IF expr THEN expr ELSE expr { PIf($2,$4,$6) }
+
+      list_of_exprs:
+  | /* empty */ { [] }
+  | expr list_of_exprs { $1::$2 }
 
 %%
 (* end of grammar *)
