@@ -18,6 +18,7 @@ let r_false = "false"
 let r_end = "end"
 let r_new = "new" | "nu"
 let r_tau = "tau"
+let r_when = "when"
  
 let op_dot = '.'
 let op_plus = '+'
@@ -35,7 +36,9 @@ let eqeq = "=="
 let tild = "~"
 let semicol = ";"
 let ws = (['\t' ' ']*)
-let command = (':' ident)
+let colon = ':'
+let cmd_help = "help"
+let cmd_quit = "quit"
 let cmd_norm = "norm"
 let cmd_struct = "struct"
 let cmd_bisim = "bisim"
@@ -64,6 +67,7 @@ let cmd_names = "names"
     | r_false { FALSE }
     | r_end { END }
     | r_new { NEW }
+    | r_when { WHEN }
     | r_tau { TAU }
     | op_dot { DOT } 
     | op_plus { PLUS } 
@@ -71,6 +75,8 @@ let cmd_names = "names"
     | op_out { OUT }
     | op_in { IN }
     | div { DIV }
+    | colon { COLON }
+    | of_type { OF_TYPE }
     | lparen { LPAREN }
     | rparen { RPAREN }
     | lbracket { LBRACKET }
@@ -90,8 +96,8 @@ let cmd_names = "names"
     | cmd_free { FREE }
     | cmd_bound { BOUND }
     | cmd_names { NAMES }
-    | command as cmd
-	{ COMMAND (cmd) }
+    | cmd_help { HELP }
+    | cmd_quit { QUIT }
     | ident as id                   
 	{ IDENT (id) }
     | eof { EOF }

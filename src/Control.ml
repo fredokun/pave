@@ -27,10 +27,12 @@ Command summary:\n\
 
 let script_mode = ref false ;;
 
-let handle_command = function
-  | ":help" -> printf "%s\n> %!" help_me;
-  | ":quit" -> printf "bye bye !\n%!" ; exit 0
-  | cmd -> printf "Unknown command: %s\n%!" cmd
+let handle_help () = 
+  printf "%s\n> %!" help_me;
+
+let handle_quit () =
+  printf "bye bye !\n%!" ; 
+  exit 0
 
 let timing operation =
   let start_time = Sys.time()

@@ -3,24 +3,24 @@
   open Printf
 
   open Utils
-  open Syntax
+  open Presyntax
 
 
   let rec mkRes ns p = match ns with
     | [] -> p
-    | n::ns' -> Res(n,(mkRes ns' p))
+    | n::ns' -> PRes(n,(mkRes ns' p))
 
   let mkRename ns p = 
     let rec ren = function
     | [] -> p
-    | (old,value) :: ns' -> Rename(old,value,(ren ns'))
+    | (old,value) :: ns' -> PRename(old,value,(ren ns'))
     in
     ren (List.rev ns)  
 
 
   let rec merge_prefix p q = match p with
-    | Prefix(a,Silent) -> Prefix(a,q)
-    | Prefix(a,p') -> Prefix(a,merge_prefix p' q)
+    | Prefix(a,Silent) -> PPrefix(a,q)
+    | Prefix(a,p') -> PPrefix(a,merge_prefix p' q)
     | _ -> failwith "Not a prefixed process"
 
 (***
@@ -32,13 +32,12 @@
 %}
 
 /* reserved keywords */
-%token DEF TRUE FALSE END NEW TAU DIV
+%token DEF TRUE FALSE END NEW TAU DIV WHEN
 
 /* identifiers */
 %token <string> IDENT
 
 /* commands */
-%token <string> COMMAND
 %token NORM
 %token STRUCT
 %token BISIM
@@ -49,6 +48,8 @@
 %token FREE
 %token BOUND
 %token NAMES
+%token HELP
+%token QUIT
 
 /* inturals */
 %token <int> INT
@@ -74,9 +75,10 @@
   /* types */
 %start script
 %type <bool> script
-%type <process> process
-%type <prefix> prefix
-%type <definition> definition
+%type <preprocess> process
+%type <preprefix> prefix
+%type <predefinition> definition
+%type <preexpr> expr
 
   /* grammar */
 %%
@@ -146,40 +148,45 @@
       { Control.handle_names $2 }
   | NAMES error
       { raise (Fatal_Parse_Error "missing process for names") } 
-  | COMMAND
-      { Control.handle_command $1 }
+  | HELP
+      { Control.handle_help () }
+  | QUIT
+      { Control.handle_quit () }
 
       process:
   | INT 
-      { if $1 = 0 then Silent 
+      { if $1 = 0 then PSilent 
         else raise (Fatal_Parse_Error "Only 0 can be used as Silent process") }
   | END 
-      { Silent }
-  | prefix { Prefix($1,Silent) }
-  | prefix COMMA process { Prefix($1,$3) }
+      { PSilent }
+  | prefix { PPrefix($1,PSilent) }
+  | prefix COMMA process { PPrefix($1,$3) }
   | prefix COMMA error
       { raise (Fatal_Parse_Error "right-hand process missing after prefix") }
   | prefix error
       { raise (Fatal_Parse_Error "missing ',' after prefix") }      
-  | process PAR process {  Par($1,$3) }
+  | process PAR process {  PPar($1,$3) }
   | process PAR error
       { raise (Fatal_Parse_Error "right-hand process missing in parallel") }      
-  | process PLUS process { Sum($1,$3) }
+  | process PLUS process { PSum($1,$3) }
   | process PLUS error
       { raise (Fatal_Parse_Error "right-hand process missing in sum") }
   | process error
       { raise (Fatal_Parse_Error "missing parallel '||' or sum '+' symbol after process"); }
   | NEW LPAREN list_of_names RPAREN %prec UNARY process { mkRes $3 $5 }
-  | IDENT LPAREN list_of_values RPAREN { Call($1,$3) }
-  | IDENT { Call($1,[]) }
+  | IDENT LPAREN list_of_expr RPAREN { PCall($1,$3) }
+  | IDENT { PCall($1,[]) }
   | process rename { mkRename $2 $1 }
   | LPAREN process RPAREN { $2 }
   | LBRACKET process RBRACKET { $2 }
+  | WHEN expr process { PGuard($2,$3) }
 
       prefix:
-  | TAU       { Tau }
-  | IDENT OUT { Out($1) }
-  | IDENT IN  { In($1) }
+  | TAU       { PTau }
+  | IDENT OUT { POut($1) }
+  | IDENT IN  { PIn($1) }
+  | expr OUT expr { PSend($1,$3) }
+  | expr IN IDENT COLON IDENT { PReceive($1,$3,$5) }
 
       rename :
    | LBRACKET list_of_renames RBRACKET { $2 }
