@@ -2,7 +2,7 @@ open Printf
 
 open Utils
 
-let version_str = "Pave' v.1 r20120924"
+let version_str = "Pave' v.1 r20120930"
 let usage = "Usage: pave <opt>"
 let banner = 
 "\n"^

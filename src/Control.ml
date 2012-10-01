@@ -8,14 +8,18 @@ open Minim
 
 let help_me = "\n\
 Command summary:\n\
-  def <name> = <proc>     -> register new (basic) definition\n\
+  def <name> = <proc>     -> register new definition\n\
+  free <proc>             -> free names of process\n\
+  bound <proc>            -> bound names of process\n\
+  names <proc>            -> names of process\n\
   norm <proc>             -> normalize process\n\
   deriv <proc>            -> show derivatives of process\n\
   lts <proc>              -> show labelled transition system\n\
-  mini <proc>             -> minimize process\n\
   struct <proc> == <proc> -> check structural congruence\n\
-  bisim <proc> ~ <proc> -> check bisimilarity (slow)\n\
-  fbisim <proc> ~ <proc> -> check bisimilarity (fast)\n\
+  bisim <proc> ~ <proc>   -> calculate bisimilarity\n\
+  bisim ? <proc> ~ <proc> -> check bisimilarity (slow)\n\
+  fbisim ? <proc> ~ <proc> -> check bisimilarity (fast)\n\
+  mini <proc>             -> minimize process\n\
 ---\n\
   :help                   -> this help message\n\
   :quit                   -> quit the program\n\
@@ -24,7 +28,7 @@ Command summary:\n\
 let script_mode = ref false ;;
 
 let handle_command = function
-  | ":help" -> printf "%s\n%!" help_me;
+  | ":help" -> printf "%s\n> %!" help_me;
   | ":quit" -> printf "bye bye !\n%!" ; exit 0
   | cmd -> printf "Unknown command: %s\n%!" cmd
 
