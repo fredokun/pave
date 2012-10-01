@@ -28,7 +28,7 @@ Command summary:\n\
 let script_mode = ref false ;;
 
 let handle_help () = 
-  printf "%s\n> %!" help_me;
+  printf "%s\n> %!" help_me
 
 let handle_quit () =
   printf "bye bye !\n%!" ; 

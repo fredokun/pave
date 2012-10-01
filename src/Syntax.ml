@@ -66,7 +66,7 @@ let string_of_def_header (Definition (name,values,_)) =
 
 let string_of_definition = function
   | Definition (_,_,body) as def ->
-    (string_of_def_header def) ^ "=" ^ (string_of_process body)
+    "def " ^ (string_of_def_header def) ^ " = " ^ (string_of_process body)
 
 
 (**************************************************)
