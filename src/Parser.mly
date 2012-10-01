@@ -83,7 +83,6 @@
     script:
   | EOF { false }
   | statement SEMICOL { true }
-  | statement SEMICOL script { true }
   | statement error { raise (Fatal_Parse_Error "missing ';' after statement") }
 
       statement:

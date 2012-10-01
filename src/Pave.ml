@@ -49,8 +49,8 @@ match !load_file with
       printf "Interactive mode... \n%!";
     Control.script_mode := false ;
     while true do
-      let lexbuf = Lexing.from_channel stdin in
 	printf "> %!";
+      let lexbuf = Lexing.from_channel stdin in
 	try
 	  ignore (Parser.script Lexer.token lexbuf)
 	with 
