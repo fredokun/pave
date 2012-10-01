@@ -156,9 +156,12 @@
         else raise (Fatal_Parse_Error "Only 0 can be used as Silent process") }
   | END 
       { Silent }
-  | prefixed_process { $1 }
-  | prefixed_process COMMA process 
-      { merge_prefix $1 $3 }
+  | prefix { Prefix($1,Silent) }
+  | prefix COMMA process { Prefix($1,$3) }
+  | prefix COMMA error
+      { raise (Fatal_Parse_Error "right-hand process missing after prefix") }
+  | prefix error
+      { raise (Fatal_Parse_Error "missing ',' after prefix") }      
   | process PAR process {  Par($1,$3) }
   | process PAR error
       { raise (Fatal_Parse_Error "right-hand process missing in parallel") }      
@@ -179,15 +182,6 @@
   | IDENT OUT { Out($1) }
   | IDENT IN  { In($1) }
 
-      prefixed_process:
-  | prefix COMMA prefixed_process 
-      {  Prefix ($1,$3) }
-  | prefix error
-      { raise (Fatal_Parse_Error "missing ',' after prefix") }
-  | prefix COMMA error %prec COMMA
-      { raise (Fatal_Parse_Error (sprintf "process missing after prefix '%s'" (string_of_prefix $1))) }
-  | prefix { Prefix ($1,Silent) }
-      
       rename :
    | LBRACKET list_of_renames RBRACKET { $2 }
 
