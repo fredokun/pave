@@ -18,6 +18,11 @@
     ren (List.rev ns)  
 
 
+  let rec merge_prefix p q = match p with
+    | Prefix(a,Silent) -> Prefix(a,q)
+    | Prefix(a,p') -> Prefix(a,merge_prefix p' q)
+    | _ -> failwith "Not a prefixed process"
+
 (***
   let parse_error s = (* Called by the parser function on error *)
     print_endline s;
@@ -54,10 +59,10 @@
 /* operators */
 %token PAR PLUS DOT OUT IN
 
+%nonassoc RENAME
 %left PAR
 %left PLUS
 %right COMMA
-%right RENAME
 %left OUT IN
 
 %nonassoc UNARY
@@ -151,13 +156,9 @@
         else raise (Fatal_Parse_Error "Only 0 can be used as Silent process") }
   | END 
       { Silent }
-  | prefix COMMA process 
-      {  Prefix ($1,$3) }
-  | prefix error
-      { raise (Fatal_Parse_Error "missing ',' after prefix") }
-  | prefix COMMA error
-      { raise (Fatal_Parse_Error (sprintf "process missing after prefix '%s'" (string_of_prefix $1))) }
-  | prefix { Prefix ($1,Silent) }
+  | prefixed_process { $1 }
+  | prefixed_process COMMA process 
+      { merge_prefix $1 $3 }
   | process PAR process {  Par($1,$3) }
   | process PAR error
       { raise (Fatal_Parse_Error "right-hand process missing in parallel") }      
@@ -169,7 +170,7 @@
   | NEW LPAREN list_of_names RPAREN %prec UNARY process { mkRes $3 $5 }
   | IDENT LPAREN list_of_values RPAREN { Call($1,$3) }
   | IDENT { Call($1,[]) }
-  | %prec RENAME process LBRACKET list_of_renames RBRACKET { mkRename $3 $1 }
+  | process rename { mkRename $2 $1 }
   | LPAREN process RPAREN { $2 }
   | LBRACKET process RBRACKET { $2 }
 
@@ -177,6 +178,18 @@
   | TAU       { Tau }
   | IDENT OUT { Out($1) }
   | IDENT IN  { In($1) }
+
+      prefixed_process:
+  | prefix COMMA prefixed_process 
+      {  Prefix ($1,$3) }
+  | prefix error
+      { raise (Fatal_Parse_Error "missing ',' after prefix") }
+  | prefix COMMA error %prec COMMA
+      { raise (Fatal_Parse_Error (sprintf "process missing after prefix '%s'" (string_of_prefix $1))) }
+  | prefix { Prefix ($1,Silent) }
+      
+      rename :
+   | LBRACKET list_of_renames RBRACKET { $2 }
 
       list_of_renames :
   | IDENT DIV IDENT { [($3,$1)] }
