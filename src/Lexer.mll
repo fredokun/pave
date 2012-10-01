@@ -76,7 +76,7 @@ let cmd_names = "names"
     | lbracket { LBRACKET }
     | rbracket { RBRACKET }
     | comma { COMMA }
-    | semicol { EOF }
+    | semicol { SEMICOL }
     | tild { TILD }
     | eqeq { EQEQ }
     | equal { EQUAL }

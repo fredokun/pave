@@ -3,4 +3,6 @@ def A = new(a) [a?,b?];
 
 
 norm [a?,b?,0]||[a?,b?,0];
-norm (a!,new(a) a?,b?)[it/a,works/b,not/c]
+norm (a!,new(a) a?,b?)[it/a,works/b,not/c] ;
+
+

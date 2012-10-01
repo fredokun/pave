@@ -57,13 +57,14 @@
 %left PAR
 %left PLUS
 %right COMMA
+%right RENAME
 %left OUT IN
 
 %nonassoc UNARY
 
-/* end of file */
+/* end of statement */
 
-%token EOF
+%token SEMICOL EOF
 
   /* types */
 %start script
@@ -76,7 +77,9 @@
 %%
     script:
   | EOF { false }
-  | statement script { true }
+  | statement SEMICOL { true }
+  | statement SEMICOL script { true }
+  | statement error { raise (Fatal_Parse_Error "missing ';' after statement") }
 
       statement:
   | definition                     
@@ -107,13 +110,14 @@
       { raise (Fatal_Parse_Error "missing process after '~' for strong bisimilarity") }
   | BISIM error 
       { raise (Fatal_Parse_Error "missing '?' or process before '~' for strong bisimilarity") }
-  | FBISIM IN process TILD process { Control.handle_is_fbisim $3 $5 }
   | FBISIM IN process TILD process 
       { Control.handle_is_fbisim $3 $5 }
   | FBISIM IN process error
       { raise (Fatal_Parse_Error "missing '~' for strong bisimilarity") }
   | FBISIM IN process TILD error
       { raise (Fatal_Parse_Error "missing process after '~' for strong bisimilarity") }
+  | FBISIM error 
+      { raise (Fatal_Parse_Error "missing '?' or process before '~' for strong bisimilarity") }
   | DERIV process
       { Control.handle_deriv $2 }
   | DERIV error
@@ -165,7 +169,7 @@
   | NEW LPAREN list_of_names RPAREN %prec UNARY process { mkRes $3 $5 }
   | IDENT LPAREN list_of_values RPAREN { Call($1,$3) }
   | IDENT { Call($1,[]) }
-  | process LBRACKET list_of_renames RBRACKET { mkRename $3 $1 }
+  | %prec RENAME process LBRACKET list_of_renames RBRACKET { mkRename $3 $1 }
   | LPAREN process RPAREN { $2 }
   | LBRACKET process RBRACKET { $2 }
 
