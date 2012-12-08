@@ -1,0 +1,12 @@
+
+const %MAX = 2;
+
+type RangeMax = [1..%MAX] ;
+
+type Range = [0..%MAX] ;
+
+def Sem($max:RangeMax $n:Range) = 
+    [ when ($n = $max) v?, Sem($max $n-1) ] + [when ( $n > 0 and $n < $max )( (p!, Sem($max $n+1)) + (v?, Sem($max $n-1))) ]+ [ when ($n = 0 ) p!, Sem($max $n+1) ];
+
+
+bisim ? Sem(2 0) ~ Sem(1 0) || Sem(1 0) ;

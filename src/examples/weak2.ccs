@@ -1,0 +1,8 @@
+
+def P = a! + b! ;
+def Q = a! + tau,b! ;
+def R = a! + tau,(a! + b!) ;
+
+wbisim ? P ~ Q ;
+wbisim ? Q ~ R ;
+wbisim ? P ~ R ;

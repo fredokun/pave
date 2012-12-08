@@ -1,0 +1,7 @@
+
+def P = tau,a! + tau,c?;
+def Q = tau,(a!+c?) ;
+
+wbisim ? P ~ Q ;
+
+wlts Q ;

@@ -1,0 +1,8 @@
+const %MIN = 0 ;
+const %MAX = 20 ;
+
+type Range = [%MIN..%MAX] ;
+
+def Compteur($n:Range) = (when ($n>%MIN) decr?,Compteur($n-1)) + (when ($n<%MAX) incr?,Compteur($n+1)) ;
+
+lts Compteur(0) ;

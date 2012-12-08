@@ -1,0 +1,6 @@
+const %N=20;
+type Range = [0..%N];
+
+def Incr = in?($n:Range), [ (when($n<%N) out!($n+1),Incr) +  (when ($n=%N) stop!,0)];
+
+lts Incr ;
