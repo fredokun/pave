@@ -115,11 +115,12 @@ let perm_proc proc = perm_saps (alea_nus proc);;
 
 let normalize_random_check proc_sizes repeat_nb =
   eprintf "Checking normalization (random version)... %!";
-  for i = 1 to repeat_nb do
-    let proc = rand_proc proc_sizes in
-    let nproc = normalize proc in
-    let rand_proc = perm_proc proc in
-    let rand_nproc = normalize proc in
+  let rec loop i =
+    if i > 0 then (
+      let proc = rand_proc proc_sizes in
+      let nproc = normalize proc in
+      let rand_proc = perm_proc proc in
+      let rand_nproc = normalize proc in
       if nproc <> rand_nproc then (
 	eprintf "\nNormalization error:\
 \
@@ -130,11 +131,12 @@ let normalize_random_check proc_sizes repeat_nb =
   -> %s\
 \
 " (string_of_process proc) (string_of_nprocess nproc)
-  (string_of_process rand_proc) (string_of_nprocess (rand_nproc));
+          (string_of_process rand_proc) (string_of_nprocess (rand_nproc));
 	failwith "normalization error";
-      )
-  done;
-  eprintf "done\n** Normalization checked successfully !\n%!"
+      ) ;
+      loop (i - 1) 
+    ) else eprintf "done\n** Normalization checked successfully !\n%!"
+  in loop repeat_nb;
 ;;
 
 let normalize_exhaustive_check child_sizes child_nb =

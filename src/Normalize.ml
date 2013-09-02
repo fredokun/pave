@@ -108,7 +108,7 @@ let rec mem_target a list =
     | [] -> false
     | (target,_)::tl -> if (target = a) then true else mem_target a tl
 
-let rec mem_value a list = 
+let mem_value a list = 
   match list with
     | [] -> false 
     | (_,value)::tl -> if (value = a) then true else mem_target a tl
@@ -300,7 +300,7 @@ let nproc_subst nproc m n =
   in
     f nproc
 
-let rec nsubst (res, nproc) m n =
+let nsubst (res, nproc) m n =
   (SSet.add n (SSet.remove m res), nproc_subst nproc m n)
     
 let rec nsubsts p ms ns = match (ms,ns) with

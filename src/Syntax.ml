@@ -14,7 +14,7 @@ type value =
   | Name of name
   | Int of int
 
-let rec string_of_value = function
+let string_of_value = function
   | Bool b -> if b then "true" else "false"
   | Name n -> n
   | Int i -> string_of_int i
@@ -98,7 +98,7 @@ let rec boundNamesOfValues = function
   | [] -> SSet.empty
   | v::vs -> SSet.union (boundNamesOfValue v) (boundNamesOfValues vs)
 
-let rec namesOfValues vs =
+let namesOfValues vs =
   SSet.union (freeNamesOfValues vs) (boundNamesOfValues vs)
 
 (* freeNames: process -> SSet.t *)

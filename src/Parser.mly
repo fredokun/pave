@@ -1,6 +1,5 @@
 /* header */
 %{
-  open Printf
 
   open Utils
   open Presyntax
@@ -18,10 +17,12 @@
     ren (List.rev ns)  
 
 
+(*
   let rec merge_prefix p q = match p with
     | PPrefix(a,PSilent) -> PPrefix(a,q)
     | PPrefix(a,p') -> PPrefix(a,merge_prefix p' q)
     | _ -> failwith "Not a prefixed process"
+*)
 
 (***
   let parse_error s = (* Called by the parser function on error *)
