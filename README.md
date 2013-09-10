@@ -5,8 +5,8 @@
 +---+--+'  |             (A)LGEBRA                   |  `+--+---+
 |   |  |   |                        (VE')RIFIER      |   |  |   |
 |  ,+--+---+                                         +---+--+   |
-|.'    | .'   (C) 2009-2012 F.Peschanski & B.Vaugon   `. |   `. |
-+------+'         & V.Membre' & A.Deharbe & J.Salvucci  `+------+
+|.'    | .'   (C) 2009-2013 F.Peschanski              `. |   `. |
++------+'                                               `+------+
               released under the GPL (cf. LICENSE)
 ===============
 </pre>
