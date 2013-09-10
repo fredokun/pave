@@ -76,6 +76,13 @@ let cmd_free = "free"
 let cmd_bound = "bound"
 let cmd_names = "names"
 
+let cmd_wderiv = "wderiv"
+let cmd_tderiv = "tderiv"
+let cmd_wbisim = "wbisim"
+let cmd_wlts = "wlts"
+let cmd_wmini = "wmini"
+let cmd_wfbisim = "wfbisim"
+
   rule token = parse
     | ws
 	{token lexbuf}
@@ -110,6 +117,7 @@ let cmd_names = "names"
     | dotdot { DOTDOT }
     | op_dot { DOT } 
     | op_plus { PLUS } 
+    | op_minus { MINUS }
     | op_par { PAR }
     | op_out { OUT }
     | op_in { IN }
@@ -142,6 +150,14 @@ let cmd_names = "names"
     | cmd_free { FREE }
     | cmd_bound { BOUND }
     | cmd_names { NAMES }
+	
+    | cmd_wderiv { WDERIV }
+    | cmd_tderiv { TDERIV }
+    | cmd_wbisim { WBISIM }
+    | cmd_wlts { WLTS }
+    | cmd_wmini { WMINI }
+    | cmd_wfbisim { WFBISIM }
+    
     | cmd_help { HELP }
     | cmd_quit { QUIT }
     | ident as id                   

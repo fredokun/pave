@@ -30,6 +30,8 @@ concurrency theory, the calculus of communicating systems (CCS)
    (export to graphviz dot)
  * partition refinement algorithm for process minimization
    and faster strong bisimulation checking
+ * support for CCS-by-value extensions
+ * weak semantics (weak LTS, weak bisimulation checking).
 
 The tool is developed in OCaml (and I really miss a good debugger !)
 

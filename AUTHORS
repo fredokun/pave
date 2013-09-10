@@ -1,5 +1,7 @@
 Frederic Peschanski - first.last _at_ lip6 _dot_ fr
-  Initial author - maintainer
+  Main author - maintainer
+
+== Students ==
 
 Benoit Vaugon
   Normalization algorithm
@@ -13,3 +15,13 @@ Aurelien Deharbe
 Jeremie Salvucci
   Partition refinement algorithm
 
+Loic Girault
+  CCS by value
+  Weak semantics
+
+Adrien Gadel
+  CCS by value
+  Weak semantics
+
+
+  

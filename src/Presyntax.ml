@@ -3,6 +3,12 @@ open Printf
 
 open Utils
 
+open Syntax
+
+let env_const = ref SMap.empty ;;
+let env_var = ref SMap.empty ;;
+
+
 type preconstdef =
 | PConstDef of string * int
 
@@ -12,7 +18,19 @@ let string_of_preconstdef = function
 type pretypedef =
 | PTDefRange of string * int * int
 | PTDefEnum of string * SSet.t
-    
+
+
+
+
+let env_type = 
+  let bool_type = PTDefEnum( "Bool", (SSet.add "True" (SSet.add "False" SSet.empty)))
+  in ref (SMap.add "Bool" bool_type SMap.empty) ;;
+
+let add_to_env_type k v =
+   env_type := SMap.add k v !env_type
+;;
+
+
 let string_of_pretypedef = function
   | PTDefRange (name,min,max) -> sprintf "type %s = [%d..%d]" name min max
   | PTDefEnum (name,names) -> "type " ^ name ^ " = " ^ (string_of_set (fun x -> x) names)
@@ -39,7 +57,112 @@ type preexpr =
 | PInfEq of preexpr * preexpr
 | PSupEq of preexpr * preexpr
 | PIf of preexpr * preexpr * preexpr
+
+exception Type_Exception of string
+
+let bool_of_value = function 
+  | Bool b -> b
+  | Name n -> raise (Type_Exception (sprintf "Name %s was received where Bool was expected !!!" n))
+  | Int i -> raise (Type_Exception (sprintf "Int %d was received where Bool was expected !!!" i))
+
+let strname_of_value = function
+  | Bool b -> raise (Type_Exception (sprintf "Bool %s was received where String was expected !!!" (if b then "true" else "false")))
+  | Name n -> n
+  | Int i -> raise (Type_Exception (sprintf "Int %d was received where String was expected !!!" i))
+
+let int_of_value = function
+  | Bool b -> raise (Type_Exception (sprintf "Bool %s was received where Int was expected !!!" (if b then "true" else "false")))
+  | Name n -> raise (Type_Exception (sprintf "Name %s was received where Int was expected !!!" n))
+  | Int i -> i
     
+let rec interprete_preexpr : preexpr -> value = function
+  | PTrue -> Bool true
+  | PFalse -> Bool false
+  | PInt i -> Int i
+  | PName str -> Name str
+  | PConst name -> Int (SMap.find name !env_const)
+  | PVar name -> (SMap.find name !env_var)
+  | PNot pexpr -> let b = bool_of_value (interprete_preexpr pexpr) in Bool (not b)
+  | PAnd (preexpr1, preexpr2) -> 
+    let b1 = bool_of_value (interprete_preexpr preexpr1)
+    and b2 = bool_of_value (interprete_preexpr preexpr2) in
+    Bool ( b1 && b2 ) 
+  | POr (preexpr1, preexpr2) ->
+    let b1 = bool_of_value (interprete_preexpr preexpr1)
+    and b2 = bool_of_value (interprete_preexpr preexpr2) in
+    Bool ( b1 or b2 ) 
+
+  | PAdd (preexpr1, preexpr2) ->
+    let i1 = int_of_value (interprete_preexpr preexpr1 )
+    and i2 = int_of_value ( interprete_preexpr preexpr2 ) in
+    Int ( i1 + i2 )
+
+  | PSub (preexpr1, preexpr2) ->
+    let i1 = int_of_value (interprete_preexpr preexpr1 )
+    and i2 = int_of_value ( interprete_preexpr preexpr2 ) in
+    Int ( i1 - i2 )
+
+  | PMul (preexpr1, preexpr2) ->
+    let i1 = int_of_value (interprete_preexpr preexpr1 )
+    and i2 = int_of_value ( interprete_preexpr preexpr2 ) in
+    Int ( i1 * i2 )
+
+  | PDiv (preexpr1, preexpr2) ->
+    let i1 = int_of_value (interprete_preexpr preexpr1 )
+    and i2 = int_of_value ( interprete_preexpr preexpr2 ) in
+    Int ( i1 / i2 )
+
+  | PMod (preexpr1, preexpr2) ->
+    let i1 = int_of_value (interprete_preexpr preexpr1 )
+    and i2 = int_of_value ( interprete_preexpr preexpr2 ) in
+    Int ( i1 mod i2 )
+
+  | PInf (preexpr1, preexpr2) ->
+    let i1 = int_of_value (interprete_preexpr preexpr1 )
+    and i2 = int_of_value ( interprete_preexpr preexpr2 ) in
+    Bool ( i1 < i2 )
+
+  | PSup (preexpr1, preexpr2) ->
+    let i1 = int_of_value (interprete_preexpr preexpr1 )
+    and i2 = int_of_value ( interprete_preexpr preexpr2 ) in
+    Bool ( i1 > i2 )
+
+  | PEq (preexpr1, preexpr2) ->
+    let p1 = interprete_preexpr preexpr1
+    and p2 = interprete_preexpr preexpr2 in
+    (match (p1, p2) with
+    | (Bool b1, Bool b2) -> Bool ( b1 = b2 )
+    | (Int i1, Int i2) -> Bool ( i1 = i2 )
+    | (Name n1, Name n2) -> Bool ( n1 = n2 )
+    | (_, _) -> Bool ( false ))
+      
+  | PNeq (preexpr1, preexpr2) ->
+    let p1 = interprete_preexpr preexpr1
+    and p2 = interprete_preexpr preexpr2 in
+    (match (p1, p2) with
+    | (Bool b1, Bool b2) -> Bool ( b1 <> b2 )
+    | (Int i1, Int i2) -> Bool ( i1 <> i2 )
+    | (Name n1, Name n2) -> Bool ( n1 <> n2 )
+    | (_, _) -> Bool ( true ))
+
+  | PInfEq (preexpr1, preexpr2) ->
+    let i1 = int_of_value (interprete_preexpr preexpr1 )
+    and i2 = int_of_value ( interprete_preexpr preexpr2 ) in
+    Bool ( i1 <= i2 )
+      
+  | PSupEq (preexpr1, preexpr2) ->
+    let i1 = int_of_value (interprete_preexpr preexpr1 )
+    and i2 = int_of_value ( interprete_preexpr preexpr2 ) in
+    Bool ( i1 >= i2 )
+      
+  | PIf (cond, preexpr1, preexpr2) ->
+    let b = bool_of_value (interprete_preexpr cond) in
+    if b then
+      interprete_preexpr preexpr1
+    else
+      interprete_preexpr preexpr2
+;;
+
 let rec string_of_preexpr = function
   | PTrue -> "true"
   | PFalse -> "false"
@@ -72,42 +195,121 @@ type preprefix =
 
 let string_of_preprefix = function
   | PTau -> "tau"
-  | PIn n -> sprintf "%s!" (string_of_preexpr n)
-  | POut n -> sprintf "%s?" (string_of_preexpr n)
+  | PIn n -> sprintf "%s?" (string_of_preexpr n)
+  | POut n -> sprintf "%s!" (string_of_preexpr n)
   | PReceive (c,x,t) -> sprintf "%s?(%s:%s)" (string_of_preexpr c) x t
   | PSend (c,e) -> sprintf "%s!%s" (string_of_preexpr c) (string_of_preexpr e)
 
 type preprocess =
-  | PSilent
-  | PPrefix of preprefix * preprocess
-  | PSum of preprocess * preprocess
-  | PPar of preprocess * preprocess
-  | PRes of Syntax.name * preprocess
-  | PCall of string * preexpr list
-  | PRename of Syntax.name * Syntax.name * preprocess
-  | PGuard of preexpr * preprocess
+| PSilent
+| PPrefix of preprefix * preprocess
+| PSum of preprocess * preprocess
+| PPar of preprocess * preprocess
+| PRes of name * preprocess
+| PCall of string * preexpr list
+| PRename of name * name * preprocess
+| PGuard of preexpr * preprocess
 
 let rec string_of_preprocess = function
   | PSilent -> "0"
   | PPrefix(a,p) -> sprintf "%s,%s" (string_of_preprefix a) (string_of_preprocess p)
-  | PSum(p,q) -> sprintf "(%s+%s)" (string_of_preprocess p) (string_of_preprocess q)
+  | PSum(p,q) -> sprintf "( %s + %s )" (string_of_preprocess p) (string_of_preprocess q)
   | PPar(p,q) -> sprintf "(%s||%s)" (string_of_preprocess p) (string_of_preprocess q)
   | PRes(n,p) -> sprintf "new(%s)[%s]" n (string_of_preprocess p)
   | PCall(d,es) -> d ^ (string_of_args string_of_preexpr es)
   | PRename(old,value,p) -> sprintf "(%s)[%s/%s]" (string_of_preprocess p)  value old
   | PGuard(g,p) -> sprintf "when (%s) %s" (string_of_preexpr g) (string_of_preprocess p)
 
-(** TODO **)
-let process_of_preprocess : preprocess -> Syntax.process = 
+
+exception Vardef_Exception of string ;;
+
+let make_int_list min max =
+  let rec make_aux m =
+    if m < max then
+      (Int m)::( make_aux  (m + 1))
+    else
+      [Int max]
+  in
+  make_aux min
+
+let value_list : pretypedef -> (value list) = function
+  | PTDefRange (_, min,max) ->(make_int_list min max)
+  | PTDefEnum ("Bool" , _) -> [Bool true; Bool false]
+  | PTDefEnum (_ , enum) -> (List.map (fun a -> Name a) (SSet.elements enum))
+    
+let rec process_of_receive : string -> string -> pretypedef -> preprocess -> process =
+  fun canal nomVar theType pproc ->
+    let val_list = value_list theType  in
+    let rec process_of_receive_aux v_list=
+      match v_list with
+      | [] -> failwith "Empty list" 
+      | hd::[] -> (env_var := (SMap.add nomVar hd !env_var);
+		   Prefix( In( sprintf "%s_%s" canal
+				 (string_of_value hd)), (process_of_preprocess pproc) ))
+      | hd::tl -> 
+	env_var:=(SMap.add nomVar hd !env_var);
+	let pref = Prefix( In( sprintf "%s_%s" canal
+				 (string_of_value hd)), (process_of_preprocess pproc) ) in
+	Sum( pref, process_of_receive_aux tl)
+    in
+    process_of_receive_aux val_list
+(*  au matching PReceive on a duplication des fils dans l'AST*)
+and process_of_prefix : preprefix -> preprocess -> process =
+  fun pfix pproc ->
+    match pfix with
+    | PTau -> Prefix(Tau, (process_of_preprocess pproc) ) 
+    | PIn (pexpr) -> Prefix( In ( string_of_value (interprete_preexpr pexpr)),
+			     (process_of_preprocess pproc) ) 
+    | POut(pexpr) -> Prefix( Out ( string_of_value (interprete_preexpr pexpr)),
+			     (process_of_preprocess pproc) ) 
+      
+    | PSend(pexprCanal, pexprVal) -> Prefix( Out ( sprintf "%s_%s" 
+						     (string_of_value (interprete_preexpr pexprCanal))
+						     (string_of_value (interprete_preexpr pexprVal)) ),
+					     (process_of_preprocess pproc))
+    | PReceive(pexprCanal, nomVar, nomType) -> 
+      (if SMap.mem nomVar !env_var then
+	  raise (Vardef_Exception nomVar));
+      let canal = string_of_value (interprete_preexpr pexprCanal) 
+      and theType = SMap.find nomType !env_type in
+      let prc = process_of_receive canal nomVar theType pproc in
+      (env_var := SMap.remove nomVar !env_var;
+       prc)
+and process_of_preprocess : preprocess -> process = 
   fun preproc -> 
     printf "Transforming process:\n%s\n%!" (string_of_preprocess preproc) ;
-    failwith "not yet implemented" 
+    match preproc with
+    | PSilent -> Silent
+    | PPrefix (pfix, pproc) -> process_of_prefix pfix pproc
+      
+    | PSum (pproc1, pproc2) -> 
+      Sum( (process_of_preprocess pproc1), 
+	   (process_of_preprocess pproc2) )
 
+    | PPar (pproc1, pproc2) -> 
+      Par( (process_of_preprocess pproc1), 
+	   (process_of_preprocess pproc2) )
+
+    | PRes (nvar, pproc) ->
+      Res(nvar, (process_of_preprocess pproc) )
+
+    | PCall( nom, pexprList) -> Call (nom, (List.map interprete_preexpr pexprList))
+
+    | PRename( oldName, newName , pproc) ->
+      Rename( oldName, newName, (process_of_preprocess pproc) )
+
+    | PGuard( pexpr, ppro) -> 
+      let b = bool_of_value (interprete_preexpr pexpr) in
+      if b then
+	process_of_preprocess ppro
+      else
+	Silent
+      
 type preparam =
-  | PParamVar of string * string
-  | PParamBool of bool
-  | PParamName of Syntax.name
-  | PParamInt of int
+| PParamVar of string * string
+| PParamBool of bool
+| PParamName of name
+| PParamInt of int
 
 let string_of_preparam = function
   | PParamVar (x,t) -> sprintf "%s:%s" x t
@@ -124,8 +326,30 @@ let string_of_predefinition = function
   | PDefinition (_,_,body) as def ->
     "def " ^ (string_of_predef_header def) ^ " = " ^ (string_of_preprocess body)
 
-(** TODO **)
-let definitions_of_predefinition : predefinition -> Syntax.definition list =
-  fun predef -> 
+let definitions_of_predefinition : predefinition -> definition list =
+  function predef ->
+    let PDefinition (name, preparams, preproc) = predef in
+    (* let rec def_of_predef_aux : string -> value list -> preparam list -> preprocess -> definition list= *)
+    (*   function name computed_params preparams preproc -> *)
+    let rec def_of_predef_aux  name computed_params preparams preproc =
+	match preparams with 
+	| [] -> [ Definition (name, computed_params, process_of_preprocess preproc) ]
+	| (PParamBool b)::tl  -> def_of_predef_aux name (computed_params@[Bool b]) tl preproc
+	| (PParamName n)::tl -> def_of_predef_aux name (computed_params@[Name n]) tl preproc
+	| (PParamInt i)::tl -> def_of_predef_aux name (computed_params@[Int i]) tl preproc
+	| (PParamVar (nomVar, theType))::tl -> 
+	  (if SMap.mem nomVar !env_var then
+	      raise (Vardef_Exception nomVar));
+	  let val_list = value_list (SMap.find theType !env_type) in
+	  let def_list = List.map (function v -> 
+	    env_var := (SMap.add nomVar v !env_var);
+	    (def_of_predef_aux name (computed_params@[v]) tl preproc) )
+	    val_list
+	  in
+	  (env_var := SMap.remove nomVar !env_var;
+	   List.flatten def_list)
+    in
     printf "Transforming definition:\n%s\n%!" (string_of_predefinition predef) ;
-    failwith "not yet implemented" 
+    def_of_predef_aux name [] preparams preproc
+
+    

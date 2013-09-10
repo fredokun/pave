@@ -57,7 +57,7 @@ let string_of_partition parts =
     (fun s part -> s ^ "\n" ^ (string_of_gset string_of_gstate part)) "" parts)
     ^ "\n"
 
-let build_graph init_graph init_partition defs ps =
+let build_graph f_deriv init_graph init_partition defs ps =
   let rec add_to_partition part elem =
     match part with
       | [] -> [GSet.singleton elem]
@@ -74,7 +74,7 @@ let build_graph init_graph init_partition defs ps =
   let rec f (graph, part) procs_todo procs_done =
     try
       let p = PSet.choose procs_todo in
-      let derivs = derivatives defs p in
+      let derivs = f_deriv defs p in
       let (new_graph, new_part) =
 	let folder ((src,_,dst) as trans) (accg, accp) =
 	  let (src', lbl', dst') =
@@ -184,11 +184,12 @@ let build_lts partition =
 	  end
   in
     f TsSet.empty pstates
-      
-let minimize defs proc =
+
+
+let minimize f_deriv defs proc =
   let init_graph = GMap.add (PState(false,proc)) GSet.empty GMap.empty in
   let init_partition = [GSet.singleton (PState(false,proc))] in
-  let (graph, partition) = build_graph init_graph init_partition defs [proc] in
+  let (graph, partition) = build_graph f_deriv init_graph init_partition defs [proc] in
     (*print_endline "STATE GRAPH :";
     print_string (string_of_graph graph);
     print_string "PARTITION :";
@@ -199,7 +200,7 @@ let minimize defs proc =
     let transitions = build_lts partition' in
       TsSet.fold (fun t acc -> t :: acc) transitions []
 
-let is_fbisimilar defs p1 p2 =
+let is_fbisimilar f_deriv defs p1 p2 =
   let root = PState(true,(SSet.empty,NSilent)) in
   let pst1 = PState(false, p1) in
   let pst2 = PState(false, p2) in
@@ -210,7 +211,7 @@ let is_fbisimilar defs p1 p2 =
   let init_partition =
     [GSet.add pst1 (GSet.add pst2 (GSet.singleton root))] in
   let (graph, partition) =
-    build_graph init_graph init_partition defs [p1;p2] in
+    build_graph f_deriv init_graph init_partition defs [p1;p2] in
   let partition' = refine (graph, partition) in
   let l = List.filter (fun x ->
     (GSet.mem pst1 x) or (GSet.mem pst2 x)) partition' in

@@ -51,6 +51,14 @@
 %token FREE
 %token BOUND
 %token NAMES
+
+%token WDERIV
+%token TDERIV
+%token WBISIM
+%token WLTS
+%token WMINI
+%token WFBISIM
+
 %token HELP
 %token QUIT
 
@@ -151,6 +159,64 @@
       { raise (Fatal_Parse_Error "missing process after '~' for strong bisimilarity") }
   | FBISIM error 
       { raise (Fatal_Parse_Error "missing '?' or process before '~' for strong bisimilarity") }
+
+
+
+  | WBISIM IN process TILD TILD process 
+      { Control.handle_is_wbisim 
+        (process_of_preprocess $3) 
+        (process_of_preprocess $6) }
+  | WBISIM IN process error
+      { raise (Fatal_Parse_Error "missing '~~' for weak bisimilarity") }
+  | WBISIM IN process TILD error
+      { raise (Fatal_Parse_Error "missing '~' for weak bisimilarity") }
+  | WBISIM IN process TILD TILD error
+      { raise (Fatal_Parse_Error "missing process after '~~' for weak bisimilarity") }
+
+  | WBISIM process TILD TILD process 
+      { Control.handle_wbisim 
+        (process_of_preprocess $2) 
+        (process_of_preprocess $5) }
+  | WBISIM process error
+      { raise (Fatal_Parse_Error "missing '~~' for weak bisimilarity") }
+  | WBISIM process TILD error
+      { raise (Fatal_Parse_Error "missing '~' for weak bisimilarity") }
+  | WBISIM process TILD TILD error
+      { raise (Fatal_Parse_Error "missing process after '~~' for weak bisimilarity") }
+      
+  | WBISIM error 
+      { raise (Fatal_Parse_Error "missing '?' or process before '~~' for weak bisimilarity") }
+
+  | WFBISIM IN process TILD TILD process 
+      { Control.handle_is_fwbisim 
+        (process_of_preprocess $3) 
+        (process_of_preprocess $6) }
+  | WFBISIM IN process error
+      { raise (Fatal_Parse_Error "missing '~~' for weak bisimilarity") }
+  | WFBISIM IN process TILD error
+      { raise (Fatal_Parse_Error "missing '~' for weak bisimilarity") }
+  | WFBISIM IN process TILD TILD error
+      { raise (Fatal_Parse_Error "missing process after '~~' for weak bisimilarity") }
+
+  | WDERIV process
+      { Control.handle_wderiv (process_of_preprocess $2) }
+  | WDERIV error
+      { raise (Fatal_Parse_Error "missing process to derivate") } 
+
+  | TDERIV process
+      { Control.handle_tderiv (process_of_preprocess $2) }
+  | TDERIV error
+      { raise (Fatal_Parse_Error "missing process to derivate") } 
+
+  | WLTS process
+      { Control.handle_wlts (process_of_preprocess $2) }
+  | WLTS error
+      { raise (Fatal_Parse_Error "missing process for LTS") } 
+  | WMINI process
+      { Control.handle_wminimization (process_of_preprocess $2) }
+  | WMINI error
+      {raise (Fatal_Parse_Error "missing process for minimization") } 
+      
   | DERIV process
       { Control.handle_deriv (process_of_preprocess $2) }
   | DERIV error
@@ -206,14 +272,14 @@
   | process rename { mkRename $2 $1 }
   | LPAREN process RPAREN { $2 }
   | LBRACKET process RBRACKET { $2 }
-  | WHEN expr process { PGuard($2,$3) }
+  | WHEN LPAREN expr RPAREN process { PGuard($3,$5) }
 
       prefix:
   | TAU       { PTau }
   | expr OUT { POut($1) }
   | expr IN  { PIn($1) }
-  | expr OUT expr { PSend($1,$3) }
-  | expr IN IDENT COLON IDENT { PReceive($1,$3,$5) }
+  | expr OUT LPAREN expr RPAREN { PSend($1,$4) }
+  | expr IN LPAREN VAR COLON IDENT RPAREN { PReceive($1,$4,$6) }
 
       rename :
    | LBRACKET list_of_renames RBRACKET { $2 }
@@ -234,7 +300,7 @@
   | TRUE { PParamBool true }
   | FALSE { PParamBool false }
   | INT { PParamInt $1 }
-  | IDENT COLON IDENT { PParamVar ($1,$3) }
+  | VAR COLON IDENT { PParamVar ($1,$3) }
   | IDENT { PParamName $1 }
 
       list_of_params:

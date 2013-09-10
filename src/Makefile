@@ -11,6 +11,9 @@ stests: _build/STests.$(KIND)
 pave: _build/Pave.$(KIND)
 	cp $< $@
 
+tests: _build/tests.$(KIND)
+	cp $< $@
+
 %.dot.pdf: %.dot
 	dot -Tpdf $< > $@
 

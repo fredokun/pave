@@ -2,7 +2,7 @@ open Printf
 
 open Utils
 
-let version_str = "Pave' v.1 r20120930"
+let version_str = "Pave' v.1 r20130910"
 let usage = "Usage: pave <opt>"
 let banner = 
 "\n"^
@@ -12,8 +12,8 @@ let banner =
 "+---+--+'  |             (A)LGEBRA                   |  `+--+---+\n"^
 "|   |  |   |                        (VE')RIFIER      |   |  |   |\n"^
 "|  ,+--+---+                                         +---+--+   |\n"^
-"|.'    | .'   (C) 2009-2012 F.Peschanski & B.Vaugon   `. |   `. |\n"^
-"+------+'         & V.Membre' & A.Deharbe & J.Salvucci  `+------+\n"^
+"|.'    | .'   (C) 2009-2012 F.Peschanski              `. |   `. |\n"^
+"+------+'                                               `+------+\n"^
 "              released under the GPL (cf. LICENSE)\n"^
 "===============\n"^
  version_str ^ "\n"
