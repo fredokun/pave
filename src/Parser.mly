@@ -34,7 +34,7 @@
 %}
 
 /* reserved keywords */
-%token DEF TRUE FALSE END NEW TAU DIV WHEN CONSTDEF TYPEDEF
+%token DEF TRUE FALSE END NEW TAU DIV WHEN CONSTDEF TYPEDEF MU NU
 
 /* identifiers */
 %token <string> IDENT
@@ -59,6 +59,11 @@
 %token WLTS
 %token WMINI
 %token WFBISIM
+
+%token PROP
+%token CHECK_LOCAL
+%token CHECK_GLOBAL
+%token SATISFY
 
 %token HELP
 %token QUIT
@@ -245,6 +250,16 @@
       { Control.handle_names (process_of_preprocess $2) }
   | NAMES error
       { raise (Fatal_Parse_Error "missing process for names") } 
+
+  | PROP IDENT LPAREN list_of_names RPAREN EQUAL formula
+      { Control.handle_prop $2 $4 (formula_of_preformula $7) }
+
+  | CHECK_LOCAL formula SATISFY process
+      { Control.handle_check_local (formula_of_preformula $2) (process_of_preprocess $4) }
+
+  | CHECK_GLOBAL formula SATISFY process
+      { Control.handle_check_global (formula_of_preformula $2) (process_of_preprocess $4) }
+
   | HELP
       { Control.handle_help () }
   | QUIT
@@ -350,7 +365,10 @@
   | formula IMPLIES formula { FImplies ($1,$3) }
   | modality formula { FModal($1,$2) }
   | TILD modality formula { FInvModal($2,$3) }
+  | MU LPAREN IDENT RPAREN DOT formula { FMu ($3,$6) }
+  | NU LPAREN IDENT RPAREN DOT formula { FNu ($3,$6) }
   | IDENT LPAREN list_of_names RPAREN { FProp($1,$3) }
+  | IDENT { FVar($1) }
 
       modality:
   | INF list_of_prefixes SUP { FPossibly $2 }

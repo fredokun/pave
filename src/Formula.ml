@@ -52,6 +52,9 @@ type formula =
   | FModal of modality * formula
   | FInvModal of modality * formula
   | FProp of string * (string list)
+  | FVar of string
+  | FMu of string * formula
+  | FNu of string * formula
  
 let rec string_of_formula : formula -> string = function
   | FTrue -> "True"
@@ -62,4 +65,11 @@ let rec string_of_formula : formula -> string = function
   | FModal(m,f) -> (string_of_modality m) ^ (string_of_formula f)
   | FInvModal(m,f) ->  "~" ^ (string_of_modality m) ^ (string_of_formula f)
   | FProp(prop,params) -> prop ^ (string_of_collection "(" ")" "," (fun s -> s) params)
+  | FVar(var) -> var
+  | FMu(x,f) -> sprintf "Mu(%s).%s" x (string_of_formula f)
+  | FNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
+  
+
+let formula_of_preformula : formula -> formula =
+  failwith "TODO" 
 

@@ -301,6 +301,13 @@ let handle_tderiv p = common_deriv (weak_derivatives true) printPfixMap "tderiv"
 
 
 
+let handle_prop _ _ _ = failwith "TODO"
+
+let handle_check_local _ _ = failwith "TODO"
+
+let handle_check_global _ _ = failwith "TODO"
+
+
 
 
 
