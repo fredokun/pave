@@ -334,5 +334,8 @@
   | /* empty */ { [] }
   | expr list_of_exprs { $1::$2 }
 
+/*      formula:
+  | TRUE {*/
+
 %%
 (* end of grammar *)
