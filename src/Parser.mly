@@ -3,6 +3,7 @@
 
   open Utils
   open Presyntax
+  open Formula
 
 
   let rec mkRes ns p = match ns with
@@ -70,11 +71,12 @@
 %token IF THEN ELSE INF SUP INFEQ SUPEQ DIFF DOTDOT LACCOL RACCOL
 
 /* operators */
-%token PAR PLUS DOT OUT IN MINUS DIV MULT MOD AND OR NOT
+%token PAR PLUS DOT OUT IN MINUS DIV MULT MOD AND OR NOT IMPLIES
 
 %nonassoc RENAME
 %left PAR
 %left AND , OR
+%right IMPLIES
 %nonassoc INF , INFEQ, SUP, SUPEQ, DIFF, EQUAL
 %left PLUS , MINUS
 %left MULT , DIV , MOD
@@ -93,6 +95,8 @@
 %type <preprocess> process
 %type <preprefix> prefix
 %type <preexpr> expr
+%type <modality> modality
+%type <formula> formula
 
   /* grammar */
 %%
@@ -281,8 +285,12 @@
   | expr OUT LPAREN expr RPAREN { PSend($1,$4) }
   | expr IN LPAREN VAR COLON IDENT RPAREN { PReceive($1,$4,$6) }
 
+      list_of_prefixes:
+  | prefix { [$1] }
+  | prefix COMMA list_of_prefixes { $1::$3 }  
+
       rename :
-   | LBRACKET list_of_renames RBRACKET { $2 }
+  | LBRACKET list_of_renames RBRACKET { $2 }
 
       list_of_renames :
   | IDENT DIV IDENT { [($3,$1)] }
@@ -334,8 +342,37 @@
   | /* empty */ { [] }
   | expr list_of_exprs { $1::$2 }
 
-/*      formula:
-  | TRUE {*/
+      formula:
+  | TRUE { FTrue }
+  | FALSE { FFalse }
+  | formula AND formula { FAnd ($1,$3) }
+  | formula OR formula { FOr ($1,$3) }
+  | formula IMPLIES formula { FImplies ($1,$3) }
+  | modality formula { FModal($1,$2) }
+  | TILD modality formula { FInvModal($2,$3) }
+  | IDENT LPAREN list_of_names RPAREN { FProp($1,$3) }
+
+      modality:
+  | INF list_of_prefixes SUP { FPossibly $2 }
+  | INF OUT SUP { FOutPossibly }
+  | INF IN SUP { FInPossibly }
+  | INF DOT SUP { FAnyPossibly }
+
+  | INF INF list_of_prefixes SUP SUP { FWPossibly $3 }
+  | INF INF OUT SUP SUP { FWOutPossibly }
+  | INF INF IN SUP SUP { FWInPossibly }
+  | INF INF DOT SUP SUP { FWAnyPossibly }
+
+  | LBRACKET list_of_prefixes RBRACKET { FNecessity $2 }
+  | LBRACKET OUT RBRACKET { FOutNecessity }
+  | LBRACKET IN RBRACKET { FInNecessity }
+  | LBRACKET DOT RBRACKET { FAnyNecessity }
+
+  | LBRACKET LBRACKET list_of_prefixes RBRACKET RBRACKET { FWNecessity $3 }
+  | LBRACKET LBRACKET OUT RBRACKET RBRACKET { FWOutNecessity }
+  | LBRACKET LBRACKET IN RBRACKET RBRACKET { FWInNecessity }
+  | LBRACKET LBRACKET DOT RBRACKET RBRACKET { FWAnyNecessity }
+
 
 %%
 (* end of grammar *)

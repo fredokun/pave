@@ -2,43 +2,43 @@
 
 open Printf
 
-open Syntax
+open Presyntax
 open Utils
 
 (* mu-calculus formulae *)
 
 type modality =
-  | FPossibly of prefix list
+  | FPossibly of preprefix list
   | FOutPossibly
   | FInPossibly
   | FAnyPossibly
-  | FWPossibly of prefix list
+  | FWPossibly of preprefix list
   | FWOutPossibly
   | FWInPossibly
   | FWAnyPossibly
-  | FNecessity of prefix list
+  | FNecessity of preprefix list
   | FOutNecessity
   | FInNecessity
   | FAnyNecessity
-  | FWNecessity of prefix list
+  | FWNecessity of preprefix list
   | FWOutNecessity
   | FWInNecessity
   | FWAnyNecessity
 
 let string_of_modality : modality -> string = function
-  | FPossibly(acts) -> string_of_collection "<" ">" ","  string_of_prefix acts
+  | FPossibly(acts) -> string_of_collection "<" ">" ","  string_of_preprefix acts
   | FOutPossibly -> "<!>"
   | FInPossibly -> "<?>"
   | FAnyPossibly -> "<.>"
-  | FWPossibly(acts) -> string_of_collection "<<" ">>" ","  string_of_prefix acts
+  | FWPossibly(acts) -> string_of_collection "<<" ">>" ","  string_of_preprefix acts
   | FWOutPossibly -> "<<!>>"
   | FWInPossibly -> "<<?>>"
   | FWAnyPossibly -> "<<.>>"
-  | FNecessity(acts) -> string_of_collection "[" "]" ","  string_of_prefix acts
+  | FNecessity(acts) -> string_of_collection "[" "]" ","  string_of_preprefix acts
   | FOutNecessity -> "[!]"
   | FInNecessity -> "[?]"
   | FAnyNecessity -> "[.]"
-  | FWNecessity(acts) -> string_of_collection "[[" "]]" ","  string_of_prefix acts
+  | FWNecessity(acts) -> string_of_collection "[[" "]]" ","  string_of_preprefix acts
   | FWOutNecessity -> "[[!]]"
   | FWInNecessity -> "[[?]]"
   | FWAnyNecessity -> "[[.]]"

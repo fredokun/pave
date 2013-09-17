@@ -63,6 +63,10 @@ let tild = "~"
 let semicol = ";"
 let ws = (['\t' ' ']*)
 let colon = ':'
+
+let implies_1 = "==>"
+let implies_2 = "=>"
+
 let cmd_help = "help"
 let cmd_quit = "quit"
 let cmd_norm = "norm"
@@ -151,6 +155,9 @@ let cmd_wfbisim = "wfbisim"
     | cmd_bound { BOUND }
     | cmd_names { NAMES }
 	
+    | implies_1 { IMPLIES }
+    | implies_2 { IMPLIES }
+
     | cmd_wderiv { WDERIV }
     | cmd_tderiv { TDERIV }
     | cmd_wbisim { WBISIM }
