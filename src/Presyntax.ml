@@ -90,7 +90,7 @@ let rec interprete_preexpr : preexpr -> value = function
   | POr (preexpr1, preexpr2) ->
     let b1 = bool_of_value (interprete_preexpr preexpr1)
     and b2 = bool_of_value (interprete_preexpr preexpr2) in
-    Bool ( b1 or b2 ) 
+    Bool ( b1 || b2 ) 
 
   | PAdd (preexpr1, preexpr2) ->
     let i1 = int_of_value (interprete_preexpr preexpr1 )
@@ -172,7 +172,7 @@ let rec string_of_preexpr = function
   | PVar v -> v
   | PNot e -> sprintf "not(%s)" (string_of_preexpr e)
   | PAnd (e1,e2) -> sprintf "(%s) and (%s)" (string_of_preexpr e1) (string_of_preexpr e2)
-  | POr (e1,e2) -> sprintf "(%s) or (%s)" (string_of_preexpr e1) (string_of_preexpr e2)
+  | POr (e1,e2) -> sprintf "(%s) || (%s)" (string_of_preexpr e1) (string_of_preexpr e2)
   | PAdd (e1,e2) -> sprintf "(%s) + (%s)" (string_of_preexpr e1) (string_of_preexpr e2)
   | PSub (e1,e2) -> sprintf "(%s) - (%s)" (string_of_preexpr e1) (string_of_preexpr e2)
   | PMul (e1,e2) -> sprintf "(%s) * (%s)" (string_of_preexpr e1) (string_of_preexpr e2)
