@@ -11,6 +11,7 @@ module PrefixMap = Map.Make (
   end
 )
 
+
 (* Remark: we use a dedicated type because in further
    extension, the set of possible transition labels could
    be distinct from action prefixes *)
@@ -121,7 +122,7 @@ let derivatives defs ((orig_res, orig_np) as orig_nproc) =
 		(new_cnt, nproc_subst acc_in name new_name,
 		 SSet.add new_name (SSet.remove name acc_in_res))
 		  (* nproc_subst renames the first encountered label != Tau
-		    or the name in a Rename node
+		    || the name in a Rename node
 		     We delete the passage and we rename name by new_name in the set
 		  *)
 	      in

@@ -1,6 +1,6 @@
 open Printf
 
-(* globa parser exception *)
+(* global parser exception *)
 
 exception Fatal_Parse_Error of string ;;
 
