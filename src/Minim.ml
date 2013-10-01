@@ -127,7 +127,7 @@ let rec refine (graph, part) =
     match pr with
       | [] -> [pt]
       | h2::t2 -> let (spl1, spl2) = split pt h2 in
-		  if GSet.is_empty spl1 or GSet.is_empty spl2 then
+		  if GSet.is_empty spl1 || GSet.is_empty spl2 then
 		    f2 pt t2
 		  else
 		    [spl1 ; spl2]
@@ -214,7 +214,7 @@ let is_fbisimilar f_deriv defs p1 p2 =
     build_graph f_deriv init_graph init_partition defs [p1;p2] in
   let partition' = refine (graph, partition) in
   let l = List.filter (fun x ->
-    (GSet.mem pst1 x) or (GSet.mem pst2 x)) partition' in
+    (GSet.mem pst1 x) || (GSet.mem pst2 x)) partition' in
   (List.length l) = 1
 
 
