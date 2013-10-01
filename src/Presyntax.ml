@@ -90,7 +90,7 @@ let rec interprete_preexpr : preexpr -> value = function
   | POr (preexpr1, preexpr2) ->
     let b1 = bool_of_value (interprete_preexpr preexpr1)
     and b2 = bool_of_value (interprete_preexpr preexpr2) in
-    Bool ( b1 or b2 ) 
+    Bool ( b1 || b2 ) 
 
   | PAdd (preexpr1, preexpr2) ->
     let i1 = int_of_value (interprete_preexpr preexpr1 )
