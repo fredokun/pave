@@ -63,6 +63,10 @@ let tild = "~"
 let semicol = ";"
 let ws = (['\t' ' ']*)
 let colon = ':'
+
+let implies_1 = "==>"
+let implies_2 = "=>"
+
 let cmd_help = "help"
 let cmd_quit = "quit"
 let cmd_norm = "norm"
@@ -82,6 +86,21 @@ let cmd_wbisim = "wbisim"
 let cmd_wlts = "wlts"
 let cmd_wmini = "wmini"
 let cmd_wfbisim = "wfbisim"
+
+let cmd_prop = "prop"
+let cmd_check = "check"
+let cmd_check_local = "checklocal"
+let cmd_check_global = "checkglobal"
+
+let sat_1 = "|-"
+let sat_2 = "satisfies"
+
+let mu_1 = "Mu"
+let mu_2 = "mu"
+let mu_3 = "MU"
+let nu_1 = "Nu"
+let nu_2 = "nu"
+let nu_3 = "NU"
 
   rule token = parse
     | ws
@@ -151,13 +170,32 @@ let cmd_wfbisim = "wfbisim"
     | cmd_bound { BOUND }
     | cmd_names { NAMES }
 	
+    | implies_1 { IMPLIES }
+    | implies_2 { IMPLIES }
+
     | cmd_wderiv { WDERIV }
     | cmd_tderiv { TDERIV }
     | cmd_wbisim { WBISIM }
     | cmd_wlts { WLTS }
     | cmd_wmini { WMINI }
     | cmd_wfbisim { WFBISIM }
-    
+
+    | mu_1 { MU }
+    | mu_2 { MU }
+    | mu_3 { MU }
+
+    | nu_1 { NU }
+    | nu_2 { NU }
+    | nu_3 { NU }
+
+    | cmd_prop { PROP }
+    | cmd_check { CHECK_LOCAL }
+    | cmd_check_local { CHECK_LOCAL }
+    | cmd_check_global { CHECK_GLOBAL }
+
+    | sat_1 { SATISFY }
+    | sat_2 { SATISFY }
+  
     | cmd_help { HELP }
     | cmd_quit { QUIT }
     | ident as id                   
