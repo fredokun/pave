@@ -252,7 +252,7 @@
       { raise (Fatal_Parse_Error "missing process for names") }
 
   | PROP IDENT LPAREN list_of_names RPAREN EQUAL formula
-      (* prop_name     params                    fmla      *)
+      /* prop_name     params                    fmla      */
       { Control.handle_prop $2 $4 (formula_of_preformula $7) }
 
   | CHECK_LOCAL formula SATISFY process
