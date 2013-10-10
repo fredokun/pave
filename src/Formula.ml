@@ -70,6 +70,11 @@ let rec string_of_formula : formula -> string = function
   | FNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
 
 
+<<<<<<< HEAD
 let formula_of_preformula : formula -> formula =
   failwith "TODO"
+=======
+let formula_of_preformula (f : formula) : formula = 
+  failwith "TODO : formula_of_preformula" 
+>>>>>>> 619762411836c50cc7e4b4a9f6a01dc1b768848c
 
