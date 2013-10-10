@@ -43,7 +43,7 @@ let string_of_modality : modality -> string = function
   | FWInNecessity -> "[[?]]"
   | FWAnyNecessity -> "[[.]]"
 
-type formula = 
+type formula =
   | FTrue
   | FFalse
   | FAnd of formula * formula
@@ -55,7 +55,7 @@ type formula =
   | FVar of string
   | FMu of string * formula
   | FNu of string * formula
- 
+
 let rec string_of_formula : formula -> string = function
   | FTrue -> "True"
   | FFalse -> "False"
@@ -68,8 +68,8 @@ let rec string_of_formula : formula -> string = function
   | FVar(var) -> var
   | FMu(x,f) -> sprintf "Mu(%s).%s" x (string_of_formula f)
   | FNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
-  
 
-let formula_of_preformula (f : formula) : formula = 
-  failwith "TODO : formula_of_preformula" 
+
+let formula_of_preformula (f : formula) : formula =
+  failwith "TODO : formula_of_preformula"
 
