@@ -36,12 +36,13 @@ Arg.parse [
 printf "%s\n%!" banner;;
 
 
-let parse_error_msg lexbuf =
+let parse_error_msg ?interactive_mode:(inter=false) lexbuf =
   let p = lexbuf.Lexing.lex_curr_p in
   let l = p.Lexing.pos_lnum in
   let c = p.Lexing.pos_cnum - p.Lexing.pos_bol in
   let tok = Lexing.lexeme lexbuf
   in
+    if inter then printf "%s^\n" @@ String.make (c + 1) ' ';
     printf "Parser error at line %d char %d: ~%s~\n%!" l c tok ;;
 
 match !load_file with
@@ -59,7 +60,14 @@ match !load_file with
           parse_error_msg lexbuf ;
           printf " ==> %s\n%!" msg
 	| Parsing.Parse_error -> 
-          parse_error_msg lexbuf
+          parse_error_msg ~interactive_mode:true lexbuf
+
+        | Presyntax.Type_Exception msg ->
+          printf " ==> %s\n%!" msg
+        | Presyntax.Vardef_Exception name ->
+          printf " ==> Undefined var \"%s\"\n%!" name
+        | Presyntax.Typedef_Exception name ->
+          printf " ==> Undefined type \"%s\"\n%!" name
     done
   | Some file ->
       printf "Loading file %s... \n%!" file;
@@ -76,6 +84,7 @@ match !load_file with
               printf " ==> %s\n%!" msg ; true
 	    | Parsing.Parse_error -> 
               parse_error_msg lexbuf ; true
+
 	in
 	  if continue then loop ();
       in

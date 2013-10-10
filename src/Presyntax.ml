@@ -5,6 +5,9 @@ open Utils
 
 open Syntax
 
+exception Typedef_Exception of string
+exception Vardef_Exception of string ;;
+
 let env_const = ref SMap.empty ;;
 let env_var = ref SMap.empty ;;
 
@@ -81,7 +84,9 @@ let rec interprete_preexpr : preexpr -> value = function
   | PInt i -> Int i
   | PName str -> Name str
   | PConst name -> Int (SMap.find name !env_const)
-  | PVar name -> (SMap.find name !env_var)
+  | PVar name -> begin
+      try (SMap.find name !env_var) with Not_found -> raise @@ Vardef_Exception name
+    end
   | PNot pexpr -> let b = bool_of_value (interprete_preexpr pexpr) in Bool (not b)
   | PAnd (preexpr1, preexpr2) ->
     let b1 = bool_of_value (interprete_preexpr preexpr1)
@@ -221,7 +226,6 @@ let rec string_of_preprocess = function
   | PGuard(g,p) -> sprintf "when (%s) %s" (string_of_preexpr g) (string_of_preprocess p)
 
 
-exception Vardef_Exception of string ;;
 
 let make_int_list min max =
   let rec make_aux m =
@@ -339,8 +343,10 @@ let definitions_of_predefinition : predefinition -> definition list =
 	| (PParamInt i)::tl -> def_of_predef_aux name (computed_params@[Int i]) tl preproc
 	| (PParamVar (nomVar, theType))::tl ->
 	  (if SMap.mem nomVar !env_var then
-	      raise (Vardef_Exception nomVar));
-	  let val_list = value_list (SMap.find theType !env_type) in
+	      raise @@ Vardef_Exception nomVar);
+	  let val_list =
+            try value_list (SMap.find theType !env_type) with Not_found -> raise @@ Typedef_Exception theType
+          in
 	  let def_list = List.map (function v ->
 	    env_var := (SMap.add nomVar v !env_var);
 	    (def_of_predef_aux name (computed_params@[v]) tl preproc) )
