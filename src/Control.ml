@@ -39,11 +39,11 @@ let script_mode = ref false ;;
 exception Constdef_Exception of string ;;
 exception Typedef_Exception of string ;;
 
-let handle_help () = 
+let handle_help () =
   printf "%s\n> %!" help_me
 
 let handle_quit () =
-  printf "bye bye !\n%!" ; 
+  printf "bye bye !\n%!" ;
   exit 0
 
 let timing operation =
@@ -51,13 +51,13 @@ let timing operation =
   in let result = operation()
      in let end_time = Sys.time()
         in
-        (result, end_time -. start_time) 
+        (result, end_time -. start_time)
 
 let handle_constdef (const_name:string) (const_val:int) =
   (* printf "(handle_constdef %s %d)\n%!" const_name const_val ; *)
   if not (SMap.mem const_name !Presyntax.env_const) then
     Presyntax.env_const := SMap.add const_name const_val !Presyntax.env_const
-  else 
+  else
     raise (Constdef_Exception const_name)
 ;;
 
@@ -65,25 +65,25 @@ let handle_typedef_range (type_name:string) (min_val:string) (max_val:string) =
   (* printf "(handle_typedef_range %s %s %s)\n%!" type_name min_val max_val ; *)
   if not (SMap.mem type_name !Presyntax.env_type) then
     let find_val v =
-      try 
-	SMap.find v !Presyntax.env_const 
+      try
+	      SMap.find v !Presyntax.env_const
       with
-	Not_found -> 
-	  try
-	    int_of_string v
-	  with
-	    Failure _ -> raise (Typedef_Exception type_name)
+	      Not_found ->
+	        try
+	          int_of_string v
+	        with
+	          Failure _ -> raise (Typedef_Exception type_name)
     in
     let min = find_val min_val
     and max = find_val max_val in
-    
-    Presyntax.add_to_env_type type_name 
-      ( if min < max then 
-	  Presyntax.PTDefRange (type_name, min, max)
-	else
-	  Presyntax.PTDefRange (type_name, max, min)
-      ) 
-  else 
+
+    Presyntax.add_to_env_type type_name
+      ( if min < max then
+	        Presyntax.PTDefRange (type_name, min, max)
+	      else
+	        Presyntax.PTDefRange (type_name, max, min)
+      )
+  else
     raise (Typedef_Exception type_name)
 ;;
 
@@ -96,7 +96,7 @@ let handle_typedef_enum (type_name:string) (names:string list) =
   in
   if not (SMap.mem type_name !Presyntax.env_type) then
     Presyntax.add_to_env_type type_name ( Presyntax.PTDefEnum (type_name, list2set names) )
-  else 
+  else
     raise (Typedef_Exception type_name)
 ;;
 
@@ -122,7 +122,7 @@ let handle_normalization proc =
   let proc',time = timing (fun () -> normalize proc)
   in
   printf "%s\n%!" (string_of_nprocess proc') ;
-  printf "(elapsed time=%fs)\n%!" time 
+  printf "(elapsed time=%fs)\n%!" time
 
 let handle_struct_congr p q =
   if !script_mode then
@@ -133,7 +133,7 @@ let handle_struct_congr p q =
   (if ok
    then printf "the processes *are* structurally congruent\n%!"
    else printf "the processes are *not* structurally congruent\n%!") ;
-  printf "(elapsed time=%fs)\n%!" time 
+  printf "(elapsed time=%fs)\n%!" time
 
 let global_definition_map = Hashtbl.create 64
 
@@ -143,12 +143,12 @@ let common_deriv f_deriv f_print str str2 p =
   printf "Compute %s...\n%!" str2;
   let op = fun () ->
     let np = normalize p in
-    f_deriv global_definition_map np 
+    f_deriv global_definition_map np
   in
   let derivs, time = timing op
   in
   f_print derivs;
-  printf "(elapsed time=%fs)\n%!" time 
+  printf "(elapsed time=%fs)\n%!" time
 
 let fetch_definition key =
   Hashtbl.find global_definition_map key
@@ -166,7 +166,7 @@ let dot_style_format (p, l, p') =
   sprintf "\"%s\" -> \"%s\" [ label = \"%s\", fontcolor=red ]"
     (string_of_nprocess p) (string_of_nprocess p') (string_of_label l)
 
-let dot_style_format' (pl, l, pl') = 
+let dot_style_format' (pl, l, pl') =
   sprintf "\"%s\" -> \"%s\" [ label = \"%s\", fontcolor=red ]"
     (string_of_list string_of_nprocess pl)
     (string_of_list string_of_nprocess pl')
@@ -175,7 +175,7 @@ let dot_style_format' (pl, l, pl') =
 let common_lts f str p =
   if !script_mode then
     printf "> %s %s\n%!" str (string_of_process p) ;
-  let transs, time = timing (fun () -> f global_definition_map (normalize p)) 
+  let transs, time = timing (fun () -> f global_definition_map (normalize p))
   in
   List.iter (fun t -> printf "%s\n" (string_of_transition t)) transs;
   printf "\nGenerating %s.dot... %!" str;
@@ -194,23 +194,23 @@ let common_lts f str p =
   fprintf oc "}\n";
   close_out oc;
   printf "done\n(elapsed time=%fs)\n%!" time
- 
+
 let common_minimization f_deriv str proc =
   if !script_mode then
     printf "> %s %s\n%!" str (string_of_process proc) ;
   printf "Minimize process...\n%!";
   let transs, time = timing (fun () ->
     let p = normalize proc in
-    minimize f_deriv global_definition_map p) 
+    minimize f_deriv global_definition_map p)
   in
   List.iter (fun t -> printf "%s\n" (string_of_transitions t)) transs;
   printf "\nGenerating lts_mini.dot... %!";
-  let nprocs = 
+  let nprocs =
     List.fold_left (fun acc (x, _, y) -> x::(y::acc)) [] transs
   in
   let oc = open_out "lts_mini.dot" in
   fprintf oc "digraph LTSMINI {\n";
-  List.iter 
+  List.iter
     (fun x -> fprintf oc "\"%s\" [ fontcolor=blue ]\n"
       (string_of_list string_of_nprocess x))
     nprocs;
@@ -221,7 +221,7 @@ let common_minimization f_deriv str proc =
   printf "done\n(elapsed time=%fs)\n%!" time
 
 
-let common_bisim f_bisim str str2 str3 p1 p2 = 
+let common_bisim f_bisim str str2 str3 p1 p2 =
   if !script_mode then
     printf "> %s %s ~ %s\n%!" str (string_of_process p1) (string_of_process p2) ;
   printf "Calculate %s...\n%!" str2;
@@ -230,7 +230,7 @@ let common_bisim f_bisim str str2 str3 p1 p2 =
   let np1 = normalize p1 in
   let np2 = normalize p2 in
   try
-    let bsm = f_bisim global_definition_map np1 np2 
+    let bsm = f_bisim global_definition_map np1 np2
     in
     let end_time = Sys.time()
     in
@@ -252,10 +252,10 @@ let common_is_bisim f_bisim str str2 p1 p2 =
     let np2 = normalize p2 in
     f_bisim global_definition_map np1 np2)
   in
-  if ok 
+  if ok
   then printf "the processes *are* %s\n(elapsed time=%fs)\n%!" str2 time
   else printf "the processes are *not* %s\n(elapsed time=%fs)\n%!" str2 time
-    
+
 let common_is_fbisim f_deriv str1 str2 p1 p2 =
 if !script_mode then
     printf "> %s ? %s ~ %s\n%!" str1 (string_of_process p1) (string_of_process p2) ;
@@ -301,11 +301,11 @@ let handle_tderiv p = common_deriv (weak_derivatives true) printPfixMap "tderiv"
 
 
 
-let handle_prop _ _ _ = failwith "TODO"
+let handle_prop _ _ _ = assert false (* TODO *)
 
-let handle_check_local _ _ = failwith "TODO"
+let handle_check_local _ _ = assert false (* TODO *)
 
-let handle_check_global _ _ = failwith "TODO"
+let handle_check_global _ _ = assert false (* TODO *)
 
 
 

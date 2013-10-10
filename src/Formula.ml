@@ -70,6 +70,16 @@ let rec string_of_formula : formula -> string = function
   | FNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
 
 
-let formula_of_preformula (f : formula) : formula =
-  failwith "TODO : formula_of_preformula"
+let rec formula_of_preformula : formula -> formula = (* function
+  | FTrue
+  | FFalse
+  | FAnd (f, g)
+  | FOr (f, g)
+  | FImplies (f, g)
+  | FModal (m, f)
+  | FInvModal (m, f)
+  | FProp (prop, params)
+  | FVar var
+  | FMu (x, f)
+  | FNu (x, f) -> *) assert false (*TODO*)
 

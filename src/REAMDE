@@ -1,0 +1,26 @@
+
+
+Les modules à modifier :
+
+Formula.formula_of_preformula : utilité à définir
+
+Control.handle_prop : définition d'une variable prop (une relation n-aire)
+- On ajoute simplement une formule à l'environnement
+
+
+Control.handle_local_check :
+- effectue un check local pour vérifier la satisfiabilité de la formule
+- dans l'article Model Checking Algorithms for the µ-calculus (CMU)
+
+
+Control.handle_global_check :
+- effectue un check global
+- Topics in concurrency
+
+
+
+
+
+
+TODO :
+
