@@ -3,6 +3,7 @@ open Printf
 (* globa parser exception *)
 
 exception Fatal_Parse_Error of string ;;
+exception Non_Implemented_Exception 
 
 (* string sets and maps *)
 

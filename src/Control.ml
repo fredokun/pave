@@ -299,6 +299,17 @@ let handle_wderiv p = common_deriv (weak_derivatives false) printPfixMap "wderiv
 
 let handle_tderiv p = common_deriv (weak_derivatives true) printPfixMap "tderiv" "tau derivatives" p
 
+let fetch_prop key =
+  Hashtbl.find global_proposition_map key
+
+let register_proposition prop =
+  Hashtbl.replace global_proposition_map (string_of_prop_header prop) prop
+
+let handle_prop prop =
+  if !script_mode then
+    printf "> %s\n%!" (string_of_definition def) ;
+  register_definition def;
+  printf "Definition '%s' registered\n%!" (def_name def)
 
 
 let handle_prop _ _ _ = assert false (* TODO *)

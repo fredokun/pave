@@ -70,7 +70,10 @@ let rec string_of_formula : formula -> string = function
   | FNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
 
 
-let rec formula_of_preformula : formula -> formula = (* function
+let rec formula_of_preformula : formula -> formula = fun f ->
+  printf "%s\n" @@ string_of_formula f;
+  raise Non_Implemented_Exception;
+ (* function
   | FTrue
   | FFalse
   | FAnd (f, g)
@@ -81,5 +84,5 @@ let rec formula_of_preformula : formula -> formula = (* function
   | FProp (prop, params)
   | FVar var
   | FMu (x, f)
-  | FNu (x, f) -> *) assert false (*TODO*)
+  | FNu (x, f) -> *)
 

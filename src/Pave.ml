@@ -68,6 +68,8 @@ match !load_file with
           printf " ==> Undefined var \"%s\"\n%!" name
         | Presyntax.Typedef_Exception name ->
           printf " ==> Undefined type \"%s\"\n%!" name
+        | Utils.Non_Implemented_Exception ->
+          printf " ==> Unimplemented action\n%!"
     done
   | Some file ->
       printf "Loading file %s... \n%!" file;
