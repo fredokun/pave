@@ -301,7 +301,7 @@ let handle_tderiv p = common_deriv (weak_derivatives true) printPfixMap "tderiv"
 
 
 
-let handle_prop _ _ _ = assert false (* TODO *)
+let handle_prop ident nf fmla = assert false (* TODO *)
 
 let handle_check_local _ _ = assert false (* TODO *)
 

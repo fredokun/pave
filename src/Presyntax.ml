@@ -297,7 +297,8 @@ and process_of_preprocess : preprocess -> process =
     | PRes (nvar, pproc) ->
       Res(nvar, (process_of_preprocess pproc) )
 
-    | PCall( nom, pexprList) -> Call (nom, (List.map interprete_preexpr pexprList))
+    | PCall( nom, pexprList) -> Call (nom,
+                                      (List.map interprete_preexpr pexprList))
 
     | PRename( oldName, newName , pproc) ->
       Rename( oldName, newName, (process_of_preprocess pproc) )
@@ -338,9 +339,12 @@ let definitions_of_predefinition : predefinition -> definition list =
     let rec def_of_predef_aux  name computed_params preparams preproc =
 	match preparams with
 	| [] -> [ Definition (name, computed_params, process_of_preprocess preproc) ]
-	| (PParamBool b)::tl  -> def_of_predef_aux name (computed_params@[Bool b]) tl preproc
-	| (PParamName n)::tl -> def_of_predef_aux name (computed_params@[Name n]) tl preproc
-	| (PParamInt i)::tl -> def_of_predef_aux name (computed_params@[Int i]) tl preproc
+	| (PParamBool b)::tl -> def_of_predef_aux name
+    (computed_params@[Bool b]) tl preproc
+	| (PParamName n)::tl -> def_of_predef_aux name
+    (computed_params@[Name n]) tl preproc
+	| (PParamInt i)::tl -> def_of_predef_aux name
+    (computed_params@[Int i]) tl preproc
 	| (PParamVar (nomVar, theType))::tl ->
 	  (if SMap.mem nomVar !env_var then
 	      raise @@ Vardef_Exception nomVar);
@@ -355,7 +359,8 @@ let definitions_of_predefinition : predefinition -> definition list =
 	  (env_var := SMap.remove nomVar !env_var;
 	   List.flatten def_list)
     in
-    printf "Transforming definition:\n%s\n%!" (string_of_predefinition predef) ;
+    printf "Transforming definition:\n%s\n%!"
+      (string_of_predefinition predef) ;
     def_of_predef_aux name [] preparams preproc
 
 
