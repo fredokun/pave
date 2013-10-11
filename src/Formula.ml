@@ -5,6 +5,7 @@ open Printf
 open Presyntax
 open Utils
 
+
 (* mu-calculus formulae *)
 
 type modality =
@@ -43,6 +44,7 @@ let string_of_modality : modality -> string = function
   | FWInNecessity -> "[[?]]"
   | FWAnyNecessity -> "[[.]]"
 
+
 type formula =
   | FTrue
   | FFalse
@@ -69,10 +71,20 @@ let rec string_of_formula : formula -> string = function
   | FMu(x,f) -> sprintf "Mu(%s).%s" x (string_of_formula f)
   | FNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
 
+type proposition = Proposition of string * string list * formula
 
-let rec formula_of_preformula : formula -> formula = fun f ->
-  printf "%s\n" @@ string_of_formula f;
-  raise Non_Implemented_Exception;
+let string_of_prop_header (Proposition(name, params, _)) = 
+  name ^ (string_of_args (fun x -> x) params)
+
+let string_of_proposition = function
+  | (Proposition(_,_,formula)) as prop ->
+    "prop " ^ (string_of_prop_header prop) ^ " = " ^ (string_of_formula formula)
+
+let rec formula_of_preformula : formula -> formula = function
+  | _ as f -> 
+    printf "Transforming %s\n" @@ string_of_formula f;
+    printf "Not implemented\n";
+    f
  (* function
   | FTrue
   | FFalse

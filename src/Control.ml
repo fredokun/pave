@@ -2,6 +2,7 @@ open Printf
 
 open Utils
 open Syntax
+open Formula
 open Normalize
 open Semop
 open Minim
@@ -136,6 +137,8 @@ let handle_struct_congr p q =
   printf "(elapsed time=%fs)\n%!" time
 
 let global_definition_map = Hashtbl.create 64
+
+let global_proposition_map = Hashtbl.create 64
 
 let common_deriv f_deriv f_print str str2 p =
   if !script_mode then
@@ -305,14 +308,12 @@ let fetch_prop key =
 let register_proposition prop =
   Hashtbl.replace global_proposition_map (string_of_prop_header prop) prop
 
-let handle_prop prop =
+let handle_prop name params formula =
   if !script_mode then
-    printf "> %s\n%!" (string_of_definition def) ;
-  register_definition def;
-  printf "Definition '%s' registered\n%!" (def_name def)
+    printf "> %s\n%!" (string_of_formula formula) ;
+  register_proposition @@ Proposition(name, params, formula);
+  printf "Proposition '%s' registered\n%!" name
 
-
-let handle_prop ident nf fmla = assert false (* TODO *)
 
 let handle_check_local _ _ = assert false (* TODO *)
 

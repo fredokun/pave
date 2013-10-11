@@ -254,6 +254,9 @@
   | PROP IDENT LPAREN list_of_names RPAREN EQUAL formula
       /* prop_name     params                    fmla      */
       { Control.handle_prop $2 $4 (formula_of_preformula $7) }
+  | PROP IDENT EQUAL formula
+      /* prop_name   fmla      */
+      { Control.handle_prop $2 [] (formula_of_preformula $4) }
 
   | CHECK_LOCAL formula SATISFY process
       { Control.handle_check_local (formula_of_preformula $2) (process_of_preprocess $4) }
