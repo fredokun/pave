@@ -312,7 +312,7 @@ let handle_prop prop =
   printf "Definition '%s' registered\n%!" (def_name def)
 
 
-let handle_prop _ _ _ = assert false (* TODO *)
+let handle_prop ident nf fmla = assert false (* TODO *)
 
 let handle_check_local _ _ = assert false (* TODO *)
 
