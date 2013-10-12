@@ -299,9 +299,25 @@ let handle_wderiv p = common_deriv (weak_derivatives false) printPfixMap "wderiv
 
 let handle_tderiv p = common_deriv (weak_derivatives true) printPfixMap "tderiv" "tau derivatives" p
 
+type prop =
+  (string * string list * Formula.formula)
 
 
-let handle_prop _ _ _ = failwith "TODO: handle_prop"
+
+let handle_prop n il f =
+  let namelist =
+    if List.length il <> 0 then
+      let il = List.rev il in
+      "(" ^ (List.fold_left
+               (fun n acc -> acc ^ ", " ^ n)
+               (List.hd il)
+               (List.tl il))
+      ^ ")"
+    else "()" (* Unreachable case *)
+  in
+  Formula.string_of_formula f |>
+      Format.printf "Prop : %s %s : %s@." n namelist;
+  Formula.add_prop n il f
 
 let handle_check_local _ _ = failwith "TODO: handle_check_local"
 

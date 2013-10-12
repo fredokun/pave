@@ -69,6 +69,33 @@ let rec string_of_formula : formula -> string = function
   | FMu(x,f) -> sprintf "Mu(%s).%s" x (string_of_formula f)
   | FNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
 
+type prop = string list * formula
 
-let formula_of_preformula pf : formula -> formula =
-  failwith "TODO formula_of_preformula"
+let props : (string, prop) Hashtbl.t = Hashtbl.create 53
+
+exception Formdef_exception of string
+
+(** val add_prop : string -> string list -> formula -> unit *)
+let add_prop name idents formula =
+  if Hashtbl.mem props name then
+    raise (Formdef_exception name)
+  else
+    Hashtbl.add props name (idents, formula)
+
+let formula_of_preformula pf =
+  let rec step = function
+  | FTrue | FFalse as f -> f
+  | FAnd (f, g) -> FAnd (step f, step g)
+  | FOr (f, g) -> FOr (step f, step g)
+  | FImplies (f, g) -> FImplies (step f, step g)
+  | FModal(m, f) -> FModal (m, step f)
+  | FInvModal (m, f) -> FInvModal (m, step f)
+  | FVar v -> FVar v
+  | FMu (x, f) -> FMu (x, step f)
+  | FNu (x, f) -> FNu (x, step f)
+  | FProp (_, _) -> failwith "TODO formula_of_preformula"
+  in
+  Format.printf "Preformula received :\n%s@." @@ string_of_formula pf;
+  let res = step pf in
+  Format.printf "Result :\n%s@." @@ string_of_formula res;
+  res
