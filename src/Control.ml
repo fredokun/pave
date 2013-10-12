@@ -313,7 +313,7 @@ let handle_prop n il f =
                (List.hd il)
                (List.tl il))
       ^ ")"
-    else "()" (* Unreachable case *)
+    else "()"
   in
   Formula.string_of_formula f |>
       Format.printf "Prop : %s %s : %s@." n namelist;
