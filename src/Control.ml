@@ -319,6 +319,20 @@ let handle_prop n il f =
       Format.printf "Prop : %s %s : %s@." n namelist;
   Formula.add_prop n il f
 
-let handle_check_local _ _ = failwith "TODO: handle_check_local"
+let handle_check_local form proc =
+  let open Formula in
+  let rec step proc = function
+    | FTrue -> true
+    | FFalse -> false
+    | FAnd (f, g) -> step proc f && step proc g
+    | FOr (f, g) -> step proc f || step proc g
+    | FImplies (f, g) -> not (step proc f) || step proc g
+    | _ -> assert false
+  in
+  let res = step proc form in
+  if res then
+    Format.printf "The processor given matches the model@."
+  else
+    Format.printf "Doesn't match, here is why : <in the future>@."
 
 let handle_check_global _ _ = failwith "TODO: handle_check_global"
