@@ -74,26 +74,61 @@ type prop = string list * formula
 let props : (string, prop) Hashtbl.t = Hashtbl.create 53
 
 exception Formdef_exception of string
+exception Unbound_variable of string
+exception Unbound_prop of string
+
+let rec verify_vars f idents =
+  match f with
+  | FVar v -> if not (List.mem v idents) then raise (Unbound_variable v)
+  | FAnd (f,g) | FOr (f,g) | FImplies (f,g) ->
+    verify_vars f idents; verify_vars g idents
+  | FModal (_, f) | FInvModal (_, f) -> verify_vars f idents
+  | FMu (x,f) | FNu (x,f) -> verify_vars f (x :: idents)
+  | FProp (_, l) -> List.iter (fun v -> verify_vars (FVar v) idents) l
+  | _ -> ()
 
 (** val add_prop : string -> string list -> formula -> unit *)
 let add_prop name idents formula =
   if Hashtbl.mem props name then
     raise (Formdef_exception name)
   else
-    Hashtbl.add props name (idents, formula)
+    begin
+      verify_vars formula idents;
+      Hashtbl.add props name (idents, formula)
+    end
+
+let substitute f sub_list =
+  let rec step sl = function
+  | FVar v -> FVar (List.assoc v sl)
+  | FTrue | FFalse as f -> f
+  | FAnd (f, g) -> FAnd (step sl f, step sl g)
+  | FOr (f, g) -> FOr (step sl f, step sl g)
+  | FImplies (f, g) -> FImplies (step sl f, step sl g)
+  | FModal(m, f) -> FModal (m, step sl f)
+  | FInvModal (m, f) -> FInvModal (m, step sl f)
+  | FMu (x, f) -> FMu (x, step ((x, x)::sl) f)
+  | FNu (x, f) -> FNu (x, step ((x, x)::sl) f)
+  | _ -> assert false (* Technically, no Prop should remain *)
+  in
+  step sub_list f
 
 let formula_of_preformula pf =
   let rec step = function
-  | FTrue | FFalse as f -> f
-  | FAnd (f, g) -> FAnd (step f, step g)
-  | FOr (f, g) -> FOr (step f, step g)
-  | FImplies (f, g) -> FImplies (step f, step g)
-  | FModal(m, f) -> FModal (m, step f)
-  | FInvModal (m, f) -> FInvModal (m, step f)
-  | FVar v -> FVar v
-  | FMu (x, f) -> FMu (x, step f)
-  | FNu (x, f) -> FNu (x, step f)
-  | FProp (_, _) -> failwith "TODO formula_of_preformula"
+    | FTrue | FFalse as f -> f
+    | FAnd (f, g) -> FAnd (step f, step g)
+    | FOr (f, g) -> FOr (step f, step g)
+    | FImplies (f, g) -> FImplies (step f, step g)
+    | FModal(m, f) -> FModal (m, step f)
+    | FInvModal (m, f) -> FInvModal (m, step f)
+    | FVar v -> FVar v
+    | FMu (x, f) -> FMu (x, step f)
+    | FNu (x, f) -> FNu (x, step f)
+    | FProp (s, il) ->
+      if Hashtbl.mem props s then
+        let (vars, formula) = Hashtbl.find props s in
+        substitute formula @@ List.combine vars il
+      else
+        raise (Unbound_prop s)
   in
   Format.printf "Preformula received :\n%s@." @@ string_of_formula pf;
   let res = step pf in
