@@ -43,6 +43,22 @@ let string_of_modality : modality -> string = function
   | FWInNecessity -> "[[?]]"
   | FWAnyNecessity -> "[[.]]"
 
+let diamond = function
+  | FPossibly _ -> true
+  | FOutPossibly | FInPossibly | FAnyPossibly -> true
+  | _ -> false
+
+type fprefix =
+| FIn of string
+| FOut of string
+| FTau
+
+let fprefix_of_preprefix = function
+  | PIn (PName n) -> FIn n
+  | POut (PName n) -> FOut n
+  | PTau -> FTau
+  | _ as pr -> failwith (Format.sprintf "Received : %s@." @@ string_of_preprefix pr)
+
 type formula =
   | FTrue
   | FFalse
@@ -97,7 +113,6 @@ let add_prop name idents formula =
       Hashtbl.add props name (idents, formula)
     end
 
-(** Bad understanding : vars aren't bound by props argument *)
 let substitute f sub_list =
   let rec step sl = function
   | FVar v -> FVar (List.assoc v sl)

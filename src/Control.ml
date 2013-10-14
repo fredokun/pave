@@ -5,6 +5,7 @@ open Syntax
 open Normalize
 open Semop
 open Minim
+open Formula
 
 let help_me = "\n\
 Command summary:\n\
@@ -299,10 +300,75 @@ let handle_wderiv p = common_deriv (weak_derivatives false) printPfixMap "wderiv
 
 let handle_tderiv p = common_deriv (weak_derivatives true) printPfixMap "tderiv" "tau derivatives" p
 
+
+(*** Mu-Calculus part *)
+
 type prop =
   (string * string list * Formula.formula)
 
+let compute_derivation p =
+  let np = normalize p in
+  derivatives global_definition_map np
 
+exception Impossible_transition
+
+let compute_modality modl tr =
+
+  let get_matching_derivations_named act tr acc =
+    TSet.fold
+      (fun t acc ->
+        Format.printf "%s@." @@ string_of_derivative t;
+        let _, pre, _ = t in
+        match act, pre with
+        | FIn s, T_In n | FOut s, T_Out n ->
+          if s = n then TSet.add t acc else acc
+        | FTau, T_Tau -> TSet.add t acc
+        | _, _ -> acc)
+      tr
+      acc
+  in
+
+  let get_matching_derivations modl tr =
+    TSet.fold
+      (fun t acc ->
+        let _, pre, _ = t in
+        match modl, pre with
+        | FInPossibly, T_In _ | FOutPossibly, T_Out _ ->
+          Format.printf "Matching@."; TSet.add t acc
+        | FAnyPossibly, T_Tau -> TSet.add t acc
+        | _, _ -> acc)
+      tr
+      TSet.empty
+  in
+
+  let get_derivations_necessity modl tr =
+    TSet.fold
+      (fun t acc ->
+        let _, pre, _ = t in
+        match modl, pre with
+        | FInNecessity, T_In _ | FOutNecessity, T_Out _ ->
+          Format.printf "Matching@."; TSet.add t acc
+        | FAnyNecessity, T_Tau -> TSet.add t acc
+        | _, _ -> raise Impossible_transition)
+      tr
+      TSet.empty
+  in
+
+  match modl with
+  | FPossibly acts | FNecessity acts ->
+    List.fold_left
+      (fun acc a ->
+
+        Format.printf "%s@." @@ string_of_modality modl;
+        get_matching_derivations_named (fprefix_of_preprefix a) tr acc)
+      TSet.empty
+      acts
+  | FOutPossibly | FInPossibly | FAnyPossibly ->
+    Format.printf "%s@." @@ string_of_modality modl;
+    get_matching_derivations modl tr
+  | FOutNecessity | FInNecessity | FAnyNecessity ->
+    get_derivations_necessity modl tr
+  | _ -> failwith "Only diamond implemented"
 
 let handle_prop n il f =
   let namelist =
@@ -320,19 +386,54 @@ let handle_prop n il f =
   Formula.add_prop n il f
 
 let handle_check_local form proc =
-  let open Formula in
   let rec step proc = function
     | FTrue -> true
     | FFalse -> false
     | FAnd (f, g) -> step proc f && step proc g
     | FOr (f, g) -> step proc f || step proc g
     | FImplies (f, g) -> not (step proc f) || step proc g
+    | FModal (m, f) when diamond m ->
+      let d = compute_derivation proc in
+      let res = compute_modality m d in
+      TSet.fold (fun t _ -> print_endline @@ string_of_derivative t) res ();
+      if TSet.is_empty res then false (* meaning there is no transition *)
+      else
+        TSet.fold
+          (fun (_, _, p') acc ->
+            if acc then acc (* no need to test the transition if one is
+                               true *)
+            else step (denormalize p') f)
+          res
+          false
+    | FModal (m, f) ->
+      Format.printf "Box case@.";
+      (try
+        let d = compute_derivation proc in
+        let res = compute_modality m d in
+        TSet.fold (fun t _ -> print_endline @@ string_of_derivative t) res ();
+        if TSet.is_empty res then false (* meaning there is no transition *)
+        else if not (TSet.equal d res) then false (* One transition missing at
+                                                     least *)
+        else
+          begin
+            Format.printf "Okay, let's test each transition now@.";
+            TSet.fold
+              (fun (_, _, p') acc ->
+                if not acc then acc (* no need to test the transition if one is
+                                           false *)
+                else step (denormalize p') f)
+              res
+              true
+          end
+
+      with
+        _ -> false)
     | _ -> assert false
   in
   let res = step proc form in
   if res then
     Format.printf "The processor given matches the model@."
   else
-    Format.printf "Doesn't match, here is why : <in the future>@."
+    Format.printf "Doesn't match, here is why : <not implemented yet>@."
 
 let handle_check_global _ _ = failwith "TODO: handle_check_global"
