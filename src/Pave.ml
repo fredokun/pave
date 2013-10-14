@@ -70,6 +70,8 @@ match !load_file with
           printf " ==> Undefined type \"%s\"\n%!" name
         | Utils.Non_Implemented_Exception ->
           printf " ==> Unimplemented action\n%!"
+        | Control.Error e -> Control.print_error e
+            
     done
   | Some file ->
       printf "Loading file %s... \n%!" file;

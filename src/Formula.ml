@@ -71,14 +71,13 @@ let rec string_of_formula : formula -> string = function
   | FMu(x,f) -> sprintf "Mu(%s).%s" x (string_of_formula f)
   | FNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
 
-type proposition = Proposition of string * string list * formula
+type proposition = string * string list * formula
 
-let string_of_prop_header (Proposition(name, params, _)) = 
+let string_of_prop_header (name, params, _) = 
   name ^ (string_of_args (fun x -> x) params)
 
-let string_of_proposition = function
-  | (Proposition(_,_,formula)) as prop ->
-    "prop " ^ (string_of_prop_header prop) ^ " = " ^ (string_of_formula formula)
+let string_of_proposition ((_, _, formula) as prop) =
+  "prop " ^ (string_of_prop_header prop) ^ " = " ^ (string_of_formula formula)
 
 let rec formula_of_preformula : formula -> formula = function
   | _ as f -> 

@@ -40,6 +40,13 @@ let script_mode = ref false ;;
 exception Constdef_Exception of string ;;
 exception Typedef_Exception of string ;;
 
+type error = Unbound_Proposition of string
+exception Error of error
+
+let print_error = function
+| Unbound_Proposition s -> printf "unbound proposition %s" s
+    
+
 let handle_help () =
   printf "%s\n> %!" help_me
 
@@ -178,32 +185,32 @@ let dot_style_format' (pl, l, pl') =
 let common_lts f str p =
   if !script_mode then
     printf "> %s %s\n%!" str (string_of_process p) ;
-  let transs, time = timing (fun () -> f global_definition_map (normalize p))
-  in
-  List.iter (fun t -> printf "%s\n" (string_of_transition t)) transs;
-  printf "\nGenerating %s.dot... %!" str;
-  let nprocs =
-    List.fold_left (fun acc (x, _, y) -> PSet.add x (PSet.add y acc))
-      PSet.empty transs
-  in
-  let oc = open_out (sprintf "%s.dot" str ) in
-  fprintf oc "digraph LTS {\n";
-  PSet.iter
-    (fun np ->
-      fprintf oc "\"%s\" [ fontcolor=blue ]\n" (string_of_nprocess np))
-    nprocs;
-  if transs = [] then fprintf oc "  0\n" else
-    List.iter (fun t -> fprintf oc "  %s\n" (dot_style_format t)) transs;
-  fprintf oc "}\n";
-  close_out oc;
-  printf "done\n(elapsed time=%fs)\n%!" time
+let transs, time = timing (fun () -> f global_definition_map (normalize p))
+in
+List.iter (fun t -> printf "%s\n" (string_of_transition t)) transs;
+printf "\nGenerating %s.dot... %!" str;
+let nprocs =
+  List.fold_left (fun acc (x, _, y) -> PSet.add x (PSet.add y acc))
+    PSet.empty transs
+in
+let oc = open_out (sprintf "%s.dot" str ) in
+fprintf oc "digraph LTS {\n";
+PSet.iter
+  (fun np ->
+    fprintf oc "\"%s\" [ fontcolor=blue ]\n" (string_of_nprocess np))
+  nprocs;
+if transs = [] then fprintf oc "  0\n" else
+  List.iter (fun t -> fprintf oc "  %s\n" (dot_style_format t)) transs;
+fprintf oc "}\n";
+close_out oc;
+printf "done\n(elapsed time=%fs)\n%!" time
 
 let common_minimization f_deriv str proc =
-  if !script_mode then
-    printf "> %s %s\n%!" str (string_of_process proc) ;
-  printf "Minimize process...\n%!";
-  let transs, time = timing (fun () ->
-    let p = normalize proc in
+if !script_mode then
+  printf "> %s %s\n%!" str (string_of_process proc) ;
+printf "Minimize process...\n%!";
+let transs, time = timing (fun () ->
+  let p = normalize proc in
     minimize f_deriv global_definition_map p)
   in
   List.iter (fun t -> printf "%s\n" (string_of_transitions t)) transs;
@@ -311,15 +318,32 @@ let register_proposition prop =
 let handle_prop name params formula =
   if !script_mode then
     printf "> %s\n%!" (string_of_formula formula) ;
-  register_proposition @@ Proposition(name, params, formula);
+  register_proposition @@ (name, params, formula);
   printf "Proposition '%s' registered\n%!" name
 
 
-let handle_check_local _ _ = assert false (* TODO *)
+let handle_check_local f p =
+  let rec check = function
+  | FTrue -> true
+  | FFalse -> false
+  | FAnd (f, g) -> check f && check g
+  | FOr (f, g) -> check f || check g
+  | FImplies (f, g) -> check f |> not || check g 
+  | FModal (m, f) -> assert false (* TODO *)
+  | FInvModal (m, f) -> assert false (* TODO *)
+  | FProp (prop, params) -> assert false (* TODO *)
+  | FVar var ->
+      begin try let name, params, _ = fetch_prop prop in
+                assert false (* TODO *)
+      with Not_found -> raise @@ Error (Unbound_Proposition prop)
+      end
+  | FMu (x, f) -> assert false (* TODO *)
+  | FNu (x, f) -> assert false (* TODO *)
+  in
+  let res = check f in
+  if res then printf "TRUE PROPERTY\n"
+  else printf "FALSE PROPERTY\n"
+  
 
-let handle_check_global _ _ = assert false (* TODO *)
-
-
-
-
+let handle_check_global f p = assert false (* TODO *)
 
