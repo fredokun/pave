@@ -19,12 +19,15 @@ let string_of_restr = function
   | Rany -> "."
   | Rpref acts -> string_of_collection_no_block "," string_of_preprefix acts
 
-let to_string_of_existence = function Possibly -> sprintf "<%s>"
+let string_of_existence = function Possibly -> sprintf "<%s>"
   | Necessity -> sprintf "[%s]"
-let to_string_of_strongness f r = function Weak -> f (f r) 
+
+let string_of_strongness f r = function Weak -> f (f r) 
   | Strong -> f r
+
 let string_of_modality (s, e, r) =
-  string_of_strongness (string_of_existence e) (string_of_restr r)
+  string_of_strongness (string_of_existence e) (string_of_restr r) s
+
     
 type formula =
   | FTrue
@@ -52,7 +55,7 @@ let rec string_of_formula : formula -> string = function
   | FMu(x,f) -> sprintf "Mu(%s).%s" x (string_of_formula f)
   | FNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
 
-type proposition = string * string list * formula
+type proposition = Proposition of string * string list * formula
 
 let string_of_prop_header (name, params, _) = 
   name ^ (string_of_args (fun x -> x) params)
@@ -60,6 +63,9 @@ let string_of_prop_header (name, params, _) =
 let string_of_proposition ((_, _, formula) as prop) =
   "prop " ^ (string_of_prop_header prop) ^ " = " ^ (string_of_formula formula)
 
+
+
+    
 let rec formula_of_preformula : formula -> formula = function
   | _ as f -> 
     printf "Transforming %s\n" @@ string_of_formula f;
