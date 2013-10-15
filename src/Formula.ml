@@ -73,7 +73,7 @@ let rec string_of_formula : formula -> string = function
 
 type proposition = Proposition of string * string list * formula
 
-let string_of_prop_header (Proposition(name, params, _)) = 
+let string_of_prop_header (Proposition(name, params, _)) =
   name ^ (string_of_args (fun x -> x) params)
 
 let string_of_proposition = function
@@ -81,7 +81,7 @@ let string_of_proposition = function
     "prop " ^ (string_of_prop_header prop) ^ " = " ^ (string_of_formula formula)
 
 let rec formula_of_preformula : formula -> formula = function
-  | _ as f -> 
+  | _ as f ->
     printf "Transforming %s\n" @@ string_of_formula f;
     printf "Not implemented\n";
     f
