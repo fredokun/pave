@@ -333,10 +333,10 @@ let handle_check_local f p =
   | FInvModal (m, f) -> assert false (* TODO *)
   | FProp (prop, params) -> assert false (* TODO *)
   | FVar var ->
-      begin try let name, params, _ = fetch_prop prop in
+      (* begin try let name, params, _ = fetch_prop prop in *)
                 assert false (* TODO *)
-      with Not_found -> raise @@ Error (Unbound_Proposition prop)
-      end
+      (* with Not_found -> raise @@ Error (Unbound_Proposition prop) *)
+      (* end *)
   | FMu (x, f) -> assert false (* TODO *)
   | FNu (x, f) -> assert false (* TODO *)
   in
