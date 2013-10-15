@@ -368,13 +368,9 @@ let next_process_set modality ts =
     let _, mod_to_check, destination = t in
     let is_next =
       match modality, mod_to_check with
-      | (Strong, Possibly, Rany), _ -> true
-      | (Strong, Possibly, Rout), (T_Out _) -> true
-      | (Strong, Possibly, Rin), (T_In _) -> true
-
-      | (Strong, Necessity, Rany), _ -> true
-      | (Strong, Necessity, Rout), (T_Out _) -> true
-      | (Strong, Necessity, Rin), (T_In _) -> true
+      | ((Strong | Weak), (Possibly | Necessity), Rany), _ -> true
+      | ((Strong | Weak), (Possibly | Necessity), Rout), (T_Out _) -> true
+      | ((Strong | Weak), (Possibly | Necessity), Rin), (T_In _) -> true
 
       | (_, _, Rpref acts), label -> List.exists
         (check_label_prefixes label) acts
