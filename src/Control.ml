@@ -40,6 +40,13 @@ let script_mode = ref false ;;
 exception Constdef_Exception of string ;;
 exception Typedef_Exception of string ;;
 
+type error = Unbound_Proposition of string
+exception Error of error
+
+let print_error = function
+  | Unbound_Proposition s -> printf "unbound proposition %s" s
+
+
 let handle_help () =
   printf "%s\n> %!" help_me
 
@@ -67,22 +74,22 @@ let handle_typedef_range (type_name:string) (min_val:string) (max_val:string) =
   if not (SMap.mem type_name !Presyntax.env_type) then
     let find_val v =
       try
-	      SMap.find v !Presyntax.env_const
+	SMap.find v !Presyntax.env_const
       with
-	      Not_found ->
-	        try
-	          int_of_string v
-	        with
-	          Failure _ -> raise (Typedef_Exception type_name)
+	Not_found ->
+	  try
+	    int_of_string v
+	  with
+	    Failure _ -> raise (Typedef_Exception type_name)
     in
     let min = find_val min_val
     and max = find_val max_val in
 
     Presyntax.add_to_env_type type_name
       ( if min < max then
-	        Presyntax.PTDefRange (type_name, min, max)
-	      else
-	        Presyntax.PTDefRange (type_name, max, min)
+	  Presyntax.PTDefRange (type_name, min, max)
+	else
+	  Presyntax.PTDefRange (type_name, max, min)
       )
   else
     raise (Typedef_Exception type_name)
@@ -226,30 +233,31 @@ let common_minimization f_deriv str proc =
 
 let common_bisim f_bisim str str2 str3 p1 p2 =
   if !script_mode then
-    printf "> %s %s ~ %s\n%!" str (string_of_process p1) (string_of_process p2) ;
+    printf "> %s %s ~ %s\n%!" str (string_of_process p1)
+      (string_of_process p2) ;
   printf "Calculate %s...\n%!" str2;
   let start_time = Sys.time()
   in
   let np1 = normalize p1 in
   let np2 = normalize p2 in
   try
-    let bsm = f_bisim global_definition_map np1 np2
-    in
-    let end_time = Sys.time()
-    in
+    let bsm = f_bisim global_definition_map np1 np2 in
+    let end_time = Sys.time() in
     let print (np1, np2) =
       printf "{ %s ; %s }\n" (string_of_nprocess np1) (string_of_nprocess np2)
     in
-    printf "the processes are %s\n(elapsed time=%fs)\n%!" str3 (end_time-.start_time) ;
+    printf "the processes are %s\n(elapsed time=%fs)\n%!" str3
+      (end_time-.start_time) ;
     BSet.iter print bsm
   with Failure "Not bisimilar" ->
-    let end_time = Sys.time()
-    in
-    printf "the processes are *not* %s\n(elapsed time=%fs)\n%!" str3 (end_time-.start_time)
+    let end_time = Sys.time() in
+    printf "the processes are *not* %s\n(elapsed time=%fs)\n%!"
+      str3 (end_time-.start_time)
 
 let common_is_bisim f_bisim str str2 p1 p2 =
   if !script_mode then
-    printf "> %s ? %s ~ %s\n%!" str (string_of_process p1) (string_of_process p2) ;
+    printf "> %s ? %s ~ %s\n%!" str
+      (string_of_process p1) (string_of_process p2) ;
   let ok,time = timing (fun () ->
     let np1 = normalize p1 in
     let np2 = normalize p2 in
@@ -260,8 +268,9 @@ let common_is_bisim f_bisim str str2 p1 p2 =
   else printf "the processes are *not* %s\n(elapsed time=%fs)\n%!" str2 time
 
 let common_is_fbisim f_deriv str1 str2 p1 p2 =
-if !script_mode then
-    printf "> %s ? %s ~ %s\n%!" str1 (string_of_process p1) (string_of_process p2) ;
+  if !script_mode then
+    printf "> %s ? %s ~ %s\n%!" str1
+      (string_of_process p1) (string_of_process p2) ;
   let ok,time = timing (fun () ->
     let np1 = normalize p1 in
     let np2 = normalize p2 in
@@ -280,27 +289,42 @@ let handle_wlts p = common_lts (lts (weak_transitions false)) "wlts" p
 
 let handle_minimization p = common_minimization derivatives "mini" p
 
-let handle_wminimization p = common_minimization (weak_transitions false) "wmini" p
+let handle_wminimization p = common_minimization
+  (weak_transitions false) "wmini" p
 
 
-let handle_bisim p1 p2 = common_bisim construct_bisimilarity "bisim" "bisimilarity" "bisimilar" p1 p2
+let handle_bisim p1 p2 = common_bisim construct_bisimilarity
+  "bisim" "bisimilarity" "bisimilar" p1 p2
 
-let handle_wbisim p1 p2 = common_bisim construct_weak_bisimilarity "wbisim" "weak bisimilarity" "weakly bisimilar" p1 p2
+let handle_wbisim p1 p2 = common_bisim construct_weak_bisimilarity
+  "wbisim" "weak bisimilarity" "weakly bisimilar" p1 p2
 
 
-let handle_is_bisim p1 p2 = common_is_bisim is_bisimilar "bisim" "bisimilar" p1 p2
+let handle_is_bisim p1 p2 = common_is_bisim is_bisimilar
+  "bisim" "bisimilar" p1 p2
 
-let handle_is_fbisim p1 p2 = common_is_fbisim derivatives "fbisim" "bisimilar" p1 p2
+let handle_is_fbisim p1 p2 = common_is_fbisim derivatives
+  "fbisim" "bisimilar" p1 p2
 
-let handle_is_wbisim p1 p2 = common_is_bisim is_weakly_bisimilar "wbisim" "weakly bisimilar" p1 p2
+let handle_is_wbisim p1 p2 = common_is_bisim is_weakly_bisimilar
+  "wbisim" "weakly bisimilar" p1 p2
 
-let handle_is_fwbisim p1 p2 = common_is_fbisim (weak_transitions false) "wfbisim" "weakly bisimilar" p1 p2
+let handle_is_fwbisim p1 p2 = common_is_fbisim (weak_transitions false)
+  "wfbisim" "weakly bisimilar" p1 p2
 
-let handle_deriv p = common_deriv derivatives (TSet.iter (fun t -> printf "%s\n" (string_of_derivative t))) "deriv" "derivatives" p
+let handle_deriv p = common_deriv derivatives (TSet.iter (fun t ->
+  printf "%s\n" (string_of_derivative t))) "deriv" "derivatives" p
 
-let handle_wderiv p = common_deriv (weak_derivatives false) printPfixMap "wderiv" "weak derivatives" p
+let handle_wderiv p = common_deriv (weak_derivatives false)
+  printPfixMap "wderiv" "weak derivatives" p
 
-let handle_tderiv p = common_deriv (weak_derivatives true) printPfixMap "tderiv" "tau derivatives" p
+let handle_tderiv p = common_deriv (weak_derivatives true)
+  printPfixMap "tderiv" "tau derivatives" p
+
+
+
+(** Mu Calculus *)
+
 
 let fetch_prop key =
   Hashtbl.find global_proposition_map key
@@ -311,15 +335,116 @@ let register_proposition prop =
 let handle_prop name params formula =
   if !script_mode then
     printf "> %s\n%!" (string_of_formula formula) ;
-  register_proposition @@ Proposition(name, params, formula);
+  register_proposition @@ (name, params, formula);
   printf "Proposition '%s' registered\n%!" name
 
 
-let handle_check_local _ _ = assert false (* TODO *)
 
-let handle_check_global _ _ = assert false (* TODO *)
+(*
+
+Dans checklocal :
+   - on normalise le proc
+   - une fois dans Fmodal : on appelle next_process_set et on
+   appelle check sur l'ensemble résultat
+*)
+
+let transitions_of nproc = derivatives global_definition_map nproc
+
+(* Semop.PSet : set de processus *)
 
 
+let check_label_prefixes lbl pref =
+  let open Presyntax in
+  match pref, lbl with
+  | PTau, T_Tau -> true
+  | (PIn (PName s1), (T_In s2)) when s1 = s2 -> true
+  | (POut (PName s1), (T_Out s2)) when s1 = s2 -> true
+  | _ -> false
 
 
+(* recupère l'ensemble des processus suivants de nproc *)
+let next_process_set modality ts =
+  TSet.fold (fun t set ->
+    let _, mod_to_check, destination = t in
+    let is_next =
+      match modality, mod_to_check with
+      | (Strong, Possibly, Rany), _ -> true
+      | (Strong, Possibly, Rout), (T_Out _) -> true
+      | (Strong, Possibly, Rin), (T_In _) -> true
 
+      | (Strong, Necessity, Rany), _ -> true
+      | (Strong, Necessity, Rout), (T_Out _) -> true
+      | (Strong, Necessity, Rin), (T_In _) -> true
+
+      | (_, _, Rpref acts), label -> List.exists
+        (check_label_prefixes label) acts
+
+      | _ -> false
+    in
+    if is_next then PSet.add destination set else set
+  ) ts PSet.empty
+
+
+let is_necessity = function  _, Necessity, _ -> true | _ -> false
+
+(*
+mod_to_check :
+
+W: weak
+Possibly : <>
+Necessity : []
+
+type preprefix =
+  | PTau
+  | PIn of preexpr
+  | POut of preexpr
+  | PReceive of preexpr * string * string
+  | PSend of preexpr * preexpr
+
+type label = T_Tau | T_In of name | T_Out of name
+
+=============
+
+type restr = Rin | Rout | Rany | Rpref of preprefix list
+type existence = Possibly | Necessity
+type strength = Weak | Strong
+type modality = strength * existence * restr
+
+*)
+
+let handle_check_local formula proc =
+  let nproc = normalize proc in
+  let rec check formula p =
+    match formula with
+      | FTrue -> true
+      | FFalse -> false
+      | FAnd (f1, f2) -> check f1 p && check f2 p
+      | FOr (f1, f2) -> check f1 p || check f2 p
+      | FImplies (f1, f2) -> check f1 p |> not || check f2 p
+      | FModal (modality, formula) ->
+        let ts = transitions_of p in
+        let necessity = is_necessity modality in
+        necessity && ts = TSet.empty
+        || (necessity &&
+               PSet.for_all (check formula) @@ next_process_set modality ts)
+        || PSet.exists (check formula) @@ next_process_set modality ts
+
+    (* transitions : <a> [a] *)
+      (* | FInvModal (modality, formula) -> assert false (\* TODO *\) *)
+      (* transitions : not <a> ou not [a] *)
+      | _-> assert false
+  (* | FProp (prop, params) -> assert false (\* TODO *\) *)
+  (* | FVar var -> *)
+  (*   (\* begin try let name, params, _ = fetch_prop prop in *\) *)
+  (*   assert false (\* TODO *\) *)
+  (* (\* with Not_found -> raise @@ Error (Unbound_Proposition prop) *\) *)
+  (* (\* end *\) *)
+  (* | FMu (x, f) -> assert false (\* TODO *\) *)
+  (* | FNu (x, f) -> assert false (\* TODO *\) *)
+  in
+  let res = check formula nproc in
+  if res then printf "TRUE PROPERTY\n"
+  else printf "FALSE PROPERTY\n"
+
+
+let handle_check_global f p = assert false (* TODO *)

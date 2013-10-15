@@ -4,7 +4,7 @@ open Utils
 
 let version_str = "Pave' v.1 r20130910"
 let usage = "Usage: pave <opt>"
-let banner = 
+let banner =
 "\n"^
 "===============\n"^
 "   .+------+                                         +------+.\n"^
@@ -54,12 +54,12 @@ match !load_file with
       let lexbuf = Lexing.from_channel stdin in
 	try
 	  ignore (Parser.script Lexer.token lexbuf)
-	with 
+	with
 	| Failure msg -> printf "Failure: %s\n%!" msg
         | Fatal_Parse_Error(msg) ->
           parse_error_msg lexbuf ;
           printf " ==> %s\n%!" msg
-	| Parsing.Parse_error -> 
+	| Parsing.Parse_error ->
           parse_error_msg ~interactive_mode:true lexbuf
 
         | Presyntax.Type_Exception msg ->
@@ -70,21 +70,23 @@ match !load_file with
           printf " ==> Undefined type \"%s\"\n%!" name
         | Utils.Non_Implemented_Exception ->
           printf " ==> Unimplemented action\n%!"
+        | Control.Error e -> Control.print_error e
+
     done
   | Some file ->
       printf "Loading file %s... \n%!" file;
     Control.script_mode := true ;
       let lexbuf = Lexing.from_channel (open_in file) in
       let rec loop () =
-	let continue = 
+	let continue =
 	  try
 	    Parser.script Lexer.token lexbuf
-	  with 
+	  with
 	    | Failure msg -> printf "Failure: %s\n%!" msg ; true
             | Fatal_Parse_Error(msg) ->
               parse_error_msg lexbuf ;
               printf " ==> %s\n%!" msg ; true
-	    | Parsing.Parse_error -> 
+	    | Parsing.Parse_error ->
               parse_error_msg lexbuf ; true
 
 	in

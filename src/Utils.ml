@@ -23,6 +23,14 @@ let string_of_collection (op:string) (cl:string) (sep:string)
   in
     op ^ (str lst) ^ cl
 
+let string_of_collection_no_block (sep:string)
+    (tostr: 'a -> string) (lst: 'a list) =
+  let rec str = function
+    | [] -> ""
+    | e::[] -> tostr e
+    | e::es -> (tostr e) ^ sep ^ (str es)
+  in str lst
+
 let string_of_list tostr lst = string_of_collection "[" "]" ";" tostr lst
 
 let string_of_args tostr lst = string_of_collection "(" ")" "," tostr lst

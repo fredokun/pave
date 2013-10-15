@@ -8,41 +8,25 @@ open Utils
 
 (* mu-calculus formulae *)
 
-type modality =
-  | FPossibly of preprefix list
-  | FOutPossibly
-  | FInPossibly
-  | FAnyPossibly
-  | FWPossibly of preprefix list
-  | FWOutPossibly
-  | FWInPossibly
-  | FWAnyPossibly
-  | FNecessity of preprefix list
-  | FOutNecessity
-  | FInNecessity
-  | FAnyNecessity
-  | FWNecessity of preprefix list
-  | FWOutNecessity
-  | FWInNecessity
-  | FWAnyNecessity
+type restr = Rin | Rout | Rany | Rpref of preprefix list
+type existence = Possibly | Necessity
+type strength = Weak | Strong
+type modality = strength * existence * restr
 
-let string_of_modality : modality -> string = function
-  | FPossibly(acts) -> string_of_collection "<" ">" ","  string_of_preprefix acts
-  | FOutPossibly -> "<!>"
-  | FInPossibly -> "<?>"
-  | FAnyPossibly -> "<.>"
-  | FWPossibly(acts) -> string_of_collection "<<" ">>" ","  string_of_preprefix acts
-  | FWOutPossibly -> "<<!>>"
-  | FWInPossibly -> "<<?>>"
-  | FWAnyPossibly -> "<<.>>"
-  | FNecessity(acts) -> string_of_collection "[" "]" ","  string_of_preprefix acts
-  | FOutNecessity -> "[!]"
-  | FInNecessity -> "[?]"
-  | FAnyNecessity -> "[.]"
-  | FWNecessity(acts) -> string_of_collection "[[" "]]" ","  string_of_preprefix acts
-  | FWOutNecessity -> "[[!]]"
-  | FWInNecessity -> "[[?]]"
-  | FWAnyNecessity -> "[[.]]"
+let string_of_restr = function
+  | Rout -> "!"
+  | Rin -> "?"
+  | Rany -> "."
+  | Rpref acts -> string_of_collection_no_block "," string_of_preprefix acts
+
+let string_of_existence = function Possibly -> sprintf "<%s>"
+  | Necessity -> sprintf "[%s]"
+
+let string_of_strongness f r = function Weak -> f (f r)
+  | Strong -> f r
+
+let string_of_modality (s, e, r) =
+  string_of_strongness (string_of_existence e) (string_of_restr r) s
 
 
 type formula =
@@ -73,12 +57,14 @@ let rec string_of_formula : formula -> string = function
 
 type proposition = Proposition of string * string list * formula
 
-let string_of_prop_header (Proposition(name, params, _)) =
+let string_of_prop_header (name, params, _) =
   name ^ (string_of_args (fun x -> x) params)
 
-let string_of_proposition = function
-  | (Proposition(_,_,formula)) as prop ->
-    "prop " ^ (string_of_prop_header prop) ^ " = " ^ (string_of_formula formula)
+let string_of_proposition ((_, _, formula) as prop) =
+  "prop " ^ (string_of_prop_header prop) ^ " = " ^ (string_of_formula formula)
+
+
+
 
 let rec formula_of_preformula : formula -> formula = function
   | _ as f ->

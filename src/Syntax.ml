@@ -61,7 +61,7 @@ let def_values = function
 let def_body = function
   | Definition (_,_,body) -> body
 
-let string_of_def_header (Definition (name,values,_)) = 
+let string_of_def_header (Definition (name,values,_)) =
   name ^ (string_of_args string_of_value values)
 
 let string_of_definition = function
@@ -103,7 +103,7 @@ let namesOfValues vs =
 
 (* freeNames: process -> SSet.t *)
 let rec freeNames = function
-  | Call (_, vs) -> 
+  | Call (_, vs) ->
     List.fold_left (fun fn v -> match v with
     | Name n -> SSet.add n fn
     | _ -> fn) SSet.empty vs
@@ -114,9 +114,9 @@ let rec freeNames = function
   | Sum (proc1, proc2) | Par (proc1, proc2) ->
       SSet.union (freeNames proc1) (freeNames proc2)
   | Res (name, proc) -> SSet.remove name (freeNames proc)
-  | Rename (old , value , proc) ->  
+  | Rename (old , value , proc) ->
     let fn = freeNames proc
-    in (* XXX: this is not clear 
+    in (* XXX: this is not clear
       if SSet.mem old fn
       then SSet.add value (SSet.remove old fn)
       else fn *)
@@ -153,20 +153,20 @@ let substPrefix p m n = match p with
   | Tau -> Tau
   | In(a) -> if a = n then (In m) else (In a)
   | Out(a) -> if a = n then (Out m) else (Out a)
-  
-let substName a b c = if a = c then b else a 
+
+let substName a b c = if a = c then b else a
 
 let substValue v m n = match v with
   | Name a -> Name (substName a m n)
   | _ -> v
-	
-let rec subst p m (* overrides *) n = 
+
+let rec subst p m (* overrides *) n =
   match p with
     | Silent -> Silent
     | Prefix(a,q) -> Prefix((substPrefix a m n),(subst q m n))
     | Sum(q,r) -> Sum((subst q m n),(subst r m n))
     | Par(q,r) -> Par((subst q m n),(subst r m n))
-    | Res(a,q) -> 
+    | Res(a,q) ->
       if a = n
       then Res(a,q)
       else if a = m
@@ -174,7 +174,7 @@ let rec subst p m (* overrides *) n =
 	   in Res(fname, (subst (subst q fname a) m n))
       else Res(a,(subst q m n))
     | Call(d,vs) -> Call(d,(List.map (fun v -> substValue v m n) vs))
-    | Rename (old,value,q) -> Rename(substName old m n,substName value m n,subst q m n) 
+    | Rename (old,value,q) -> Rename(substName old m n,substName value m n,subst q m n)
 
 let rec substs p ms ns = match (ms,ns) with
   | ([],[]) -> p

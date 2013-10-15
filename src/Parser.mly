@@ -375,25 +375,26 @@
   | IDENT { FVar($1) }
 
       modality:
-  | INF list_of_prefixes SUP { FPossibly $2 }
-  | INF OUT SUP { FOutPossibly }
-  | INF IN SUP { FInPossibly }
-  | INF DOT SUP { FAnyPossibly }
+  | INF list_of_prefixes SUP { Strong, Possibly, Rpref $2 }
+  | INF OUT SUP { Strong, Possibly, Rout }
+  | INF IN SUP { Strong, Possibly, Rin }
+  | INF DOT SUP { Strong, Possibly, Rany }
 
-  | INF INF list_of_prefixes SUP SUP { FWPossibly $3 }
-  | INF INF OUT SUP SUP { FWOutPossibly }
-  | INF INF IN SUP SUP { FWInPossibly }
-  | INF INF DOT SUP SUP { FWAnyPossibly }
+  | INF INF list_of_prefixes SUP SUP { Weak, Possibly, Rpref $3 }
+  | INF INF OUT SUP SUP { Weak, Possibly, Rout }
+  | INF INF IN SUP SUP { Weak, Possibly, Rin }
+  | INF INF DOT SUP SUP { Weak, Possibly, Rany }
 
-  | LBRACKET list_of_prefixes RBRACKET { FNecessity $2 }
-  | LBRACKET OUT RBRACKET { FOutNecessity }
-  | LBRACKET IN RBRACKET { FInNecessity }
-  | LBRACKET DOT RBRACKET { FAnyNecessity }
+  | LBRACKET list_of_prefixes RBRACKET { Strong, Necessity, Rpref $2 }
+  | LBRACKET OUT RBRACKET { Strong, Necessity, Rout }
+  | LBRACKET IN RBRACKET { Strong, Necessity, Rin}
+  | LBRACKET DOT RBRACKET { Strong, Necessity, Rany }
 
-  | LBRACKET LBRACKET list_of_prefixes RBRACKET RBRACKET { FWNecessity $3 }
-  | LBRACKET LBRACKET OUT RBRACKET RBRACKET { FWOutNecessity }
-  | LBRACKET LBRACKET IN RBRACKET RBRACKET { FWInNecessity }
-  | LBRACKET LBRACKET DOT RBRACKET RBRACKET { FWAnyNecessity }
+  | LBRACKET LBRACKET list_of_prefixes RBRACKET RBRACKET {
+    Weak, Necessity, Rpref $3 }
+  | LBRACKET LBRACKET OUT RBRACKET RBRACKET { Weak, Necessity, Rout }
+  | LBRACKET LBRACKET IN RBRACKET RBRACKET { Weak, Necessity, Rin }
+  | LBRACKET LBRACKET DOT RBRACKET RBRACKET { Weak, Necessity, Rany }
 
 
 %%
