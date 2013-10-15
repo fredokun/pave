@@ -54,7 +54,7 @@ module BSet = Set.Make (
 
 let label_of_prefix =function 
   | Tau -> T_Tau | In n -> T_In n | Out n -> T_Out n
-  
+    
 
 let derivatives defs ((orig_res, orig_np) as orig_nproc) =
   let restrict res derivs =
@@ -62,8 +62,7 @@ let derivatives defs ((orig_res, orig_np) as orig_nproc) =
       match lab with
       | T_Tau -> true
       | T_In n | T_Out n -> not (SSet.mem n res)
-    in
-    TSet.filter filter derivs
+    in TSet.filter filter derivs
   in
   let renames var name derivs=
     let folder (src, lab, (dres,dest)) acc =
@@ -71,10 +70,8 @@ let derivatives defs ((orig_res, orig_np) as orig_nproc) =
         | T_Tau -> T_Tau
         | T_In n -> T_In (if n = var then name else n)
         | T_Out n -> T_Out (if n = var then name else n)
-      in
-      TSet.add (src, lab', (dres,NRename(var,name,dest))) acc
-    in
-    TSet.fold folder derivs TSet.empty
+      in TSet.add (src, lab', (dres,NRename(var,name,dest))) acc
+    in TSet.fold folder derivs TSet.empty
   in
   let rec f res np =
     match np with
@@ -87,13 +84,13 @@ let derivatives defs ((orig_res, orig_np) as orig_nproc) =
       in
       let (body_res, body_np) = normalize body in
       let derivs = f body_res body_np in
-	restrict body_res derivs
+      restrict body_res derivs
     | NPrefix (pref, np) ->
       TSet.singleton (orig_nproc, label_of_prefix pref, renormalize(res,np))
     | NRename (var,name,np) -> 
       let derivs = f res np
       in
-        renames var name derivs
+      renames var name derivs
     | NSum nps ->
       List.fold_left (fun acc np -> TSet.union (f res np) acc)
 	TSet.empty nps
@@ -113,48 +110,42 @@ let derivatives defs ((orig_res, orig_np) as orig_nproc) =
 		(*compteur, accu processus, accu restrictions*)
 		let rec gen_name n =
 		  let new_n = "f" ^ (string_of_int n) in
-		    if SSet.mem new_n in_frees || SSet.mem new_n in_res
-		    then gen_name (succ n)
-		    else (succ n, new_n)
+		  if SSet.mem new_n in_frees || SSet.mem new_n in_res
+		  then gen_name (succ n)
+		  else (succ n, new_n)
 		in
 		let (new_cnt, new_name) = gen_name cnt in
 		(new_cnt, nproc_subst acc_in name new_name,
 		 SSet.add new_name (SSet.remove name acc_in_res))
 		  (* nproc_subst renames the first encountered label != Tau
-		    or the name in a Rename node
+		     or the name in a Rename node
 		     We delete the passage and we rename name by new_name in the set
-		  *)
-	      in
+		  *) in
 	      let (_, new_in, new_in_res) =
 		SSet.fold folder_in in_forbid (0, dst, in_res)
-		 (*We rename all the names (at depth 1) 
-		   of dst in folder_in by the new name
-		 *) 
-	      in
-	      let folder_oths name (cnt, acc_oths, acc_oths_res) =
-		let rec gen_name n =
-		  let new_n = "f" ^ (string_of_int n) in
-		    if SSet.mem new_n np_frees || SSet.mem new_n res
-		    then gen_name (succ n)
-		    else (succ n, new_n)
-		in
-		let (new_cnt, new_name) = gen_name cnt in
-		  (new_cnt,
-		   List.map (fun np -> nproc_subst np name new_name)
-		     acc_oths,
-		   SSet.add new_name (SSet.remove name acc_oths_res))
-	      in
-	      let (_, new_oths, new_oths_res) =
-		SSet.fold folder_oths np_forbid (0, oths_np, res)
-	      in
-		renormalize (SSet.union new_in_res new_oths_res,
-			     NPar (new_in :: new_oths))
-	    in
-	      TSet.add (src, lab, new_dst) acc
-	  in
-	    (TSet.fold folder nexts acc_par, (nexts, oths_np) :: acc_simpl)
-	in
-	  List.fold_left folder (TSet.empty, []) nps
+	      (*We rename all the names (at depth 1) 
+		of dst in folder_in by the new name
+	      *) 
+	      in let folder_oths name (cnt, acc_oths, acc_oths_res) =
+		   let rec gen_name n =
+		     let new_n = "f" ^ (string_of_int n) in
+		     if SSet.mem new_n np_frees || SSet.mem new_n res
+		     then gen_name (succ n)
+		     else (succ n, new_n)
+		   in
+		   let (new_cnt, new_name) = gen_name cnt in
+		   (new_cnt,
+		    List.map (fun np -> nproc_subst np name new_name)
+		      acc_oths,
+		    SSet.add new_name (SSet.remove name acc_oths_res))
+		 in
+		 let (_, new_oths, new_oths_res) =
+		   SSet.fold folder_oths np_forbid (0, oths_np, res)
+		 in renormalize (SSet.union new_in_res new_oths_res,
+				 NPar (new_in :: new_oths))
+	    in TSet.add (src, lab, new_dst) acc
+	  in (TSet.fold folder nexts acc_par, (nexts, oths_np) :: acc_simpl)
+	in List.fold_left folder (TSet.empty, []) nps
       in
       let folder ((map, _) as acc) (elt_set, oths) =
 	let folder' (_, lab, dst) ((map', set') as acc') =
@@ -163,40 +154,34 @@ let derivatives defs ((orig_res, orig_np) as orig_nproc) =
 	      try SMap.add org ((dst,oths) :: SMap.find org map') map'
 	      with Not_found -> SMap.add org [(dst,oths)] map'
 	    in
-	      try
-		let dsts' = SMap.find opp map in
-		let folder acc (np, oths') =
-		  let oths_np =
-		    List.filter (fun e -> List.memq e oths) oths'
-		  in
-		  let nproc' =
-		    let p1 = denormalize np in
-		    let p2 = denormalize dst in
-		    let oths_p =
-		      List.map (fun np -> denormalize (res, np)) oths_np
-		    in
-		    let p =
-		      List.fold_left (fun acc p -> Par (p, acc)) Silent
-			(p1 :: p2 :: oths_p)
-		    in
-		      normalize p
-		  in
-		    TSet.add (orig_nproc, T_Tau, nproc') acc
+	    try
+	      let dsts' = SMap.find opp map in
+	      let folder acc (np, oths') =
+		let oths_np =
+		  List.filter (fun e -> List.memq e oths) oths'
 		in
-		  (new_map', List.fold_left folder set' dsts')
-	      with Not_found -> (new_map', set')
-	  in
-	    match lab with
-	    | T_Tau -> acc'
-	    | T_In n -> add_taus (n ^ "?") (n ^ "!")
-	    | T_Out n -> add_taus (n ^ "!") (n ^ "?")
-	in
-	  TSet.fold folder' elt_set acc
-      in
-	snd (List.fold_left folder (SMap.empty, set_par) set_simpl)
+		let nproc' =
+		  let p1 = denormalize np in
+		  let p2 = denormalize dst in
+		  let oths_p =
+		    List.map (fun np -> denormalize (res, np)) oths_np
+		  in
+		  let p =
+		    List.fold_left (fun acc p -> Par (p, acc)) Silent
+		      (p1 :: p2 :: oths_p)
+		  in normalize p
+		in TSet.add (orig_nproc, T_Tau, nproc') acc
+	      in (new_map', List.fold_left folder set' dsts')
+	    with Not_found -> (new_map', set')
+	  in match lab with
+	  | T_Tau -> acc'
+	  | T_In n -> add_taus (n ^ "?") (n ^ "!")
+	  | T_Out n -> add_taus (n ^ "!") (n ^ "?")
+	in TSet.fold folder' elt_set acc
+      in snd (List.fold_left folder (SMap.empty, set_par) set_simpl)
   in
   let derivs = f orig_res orig_np in
-    restrict orig_res derivs
+  restrict orig_res derivs
 ;;
 
 let lts deriv_f defs p =
@@ -239,13 +224,13 @@ let construct_bisimilarity defs nproc1 nproc2 =
 	      try construct (BSet.add dsts acc_bsm) dst1 dst2
 	      with Failure "Bad path" -> search (TSet.remove ty acc_dys)
       in
-	search dys
+      search dys
     in
-      TSet.fold (folder d2s false) d1s
-	(TSet.fold (folder d1s true) d2s bsm)
+    TSet.fold (folder d2s false) d1s
+      (TSet.fold (folder d1s true) d2s bsm)
   in
-    try construct (BSet.singleton (nproc1, nproc2)) nproc1 nproc2
-    with Failure "Bad path" -> failwith "Not bisimilar"
+  try construct (BSet.singleton (nproc1, nproc2)) nproc1 nproc2
+  with Failure "Bad path" -> failwith "Not bisimilar"
 ;;
 
 let is_bisimilar defs nproc1 nproc2 =
@@ -294,7 +279,7 @@ let is_restricted rest pf =
 
 let prefix_of_label = function 
   | T_Tau -> Tau | T_In n -> In n | T_Out n -> Out n
-	
+    
 
 let weak_derivatives tau_only defs (orig_restrict, p) : PSet.t PrefixMap.t =
   let rec weak_deriv_aux pfix_key entry_map (restrict, p) =
@@ -373,8 +358,8 @@ let weak_derivatives tau_only defs (orig_restrict, p) : PSet.t PrefixMap.t =
       let (body_res, body_np) = normalize body in
       let derivs = weak_deriv_aux pfix_key entry_map ((SSet.union restrict body_res), body_np) in
       PrefixMap.filter (fun k _ -> not (is_restricted body_res k)) derivs
-	(* on ne filtre que sur body_res -> restrict sera au pire filtré à la sortie
-	 * de weak_derivatives, et plus d'états dans la map peut empêcher des récursions *)
+    (* on ne filtre que sur body_res -> restrict sera au pire filtré à la sortie
+     * de weak_derivatives, et plus d'états dans la map peut empêcher des récursions *)
     | NRename (old, newn, p') ->
       (*ici on fait un appel réccursif avec une map vide et on trie à la sortie*)
       let m = weak_deriv_aux pfix_key PrefixMap.empty (restrict, p')
@@ -408,7 +393,7 @@ let weak_derivatives tau_only defs (orig_restrict, p) : PSet.t PrefixMap.t =
   let derivs = PrefixMap.filter (fun k _ -> not (is_restricted orig_restrict k)) derivs in
   pmap_add_val derivs Tau (orig_restrict, p)
 
-  
+    
 
 let printPfixMap map =
   let b = PrefixMap.bindings map in
