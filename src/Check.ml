@@ -65,30 +65,6 @@ let beta_reduce in_formula expected_var replacement =
   in
   beta_reduce in_formula
 
-(*
-mod_to_check :
-
-W: weak
-Possibly : <>
-Necessity : []
-
-type preprefix =
-  | PTau
-  | PIn of preexpr
-  | POut of preexpr
-  | PReceive of preexpr * string * string
-  | PSend of preexpr * preexpr
-
-type label = T_Tau | T_In of name | T_Out of name
-
-=============
-
-type restr = Rin | Rout | Rany | Rpref of preprefix list
-type existence = Possibly | Necessity
-type strength = Weak | Strong
-type modality = strength * existence * restr
-
-*)
 
 let rec check def_map prop_map formula nproc =
   Printf.printf "Checking %s |- %s\n" (Normalize.string_of_nprocess nproc)
@@ -109,15 +85,17 @@ let rec check def_map prop_map formula nproc =
         check_prop_call def_map prop_map prop_name params nproc
     | FVar var ->
         check_prop_call def_map prop_map var [] nproc
-    | _-> assert false
-  (*   (\* begin try let name, params, _ = fetch_prop prop in *\) *)
-  (*   assert false (\* TODO *\) *)
-  (* (\* with Not_found -> raise @@ Error (Unbound_Proposition prop) *\) *)
-  (* (\* end *\) *)
-  (* | FMu (x, f) -> assert false (\* TODO *\) *)
+    | FMu (x, formula) ->
+      let reduced_formula = beta_reduce formula x @@ (FMu (x, formula)) in
+      check_internal reduced_formula
+
   (* | FNu (x, f) -> assert false (\* TODO *\) *)
+    | _-> assert false
   in
   check_internal formula
+
+
+    (* AND rec *)
 
 and check_modality def_map prop_map modality formula process =
   let ts = transitions_of def_map process  in
@@ -127,6 +105,7 @@ and check_modality def_map prop_map modality formula process =
   in
   quantif (check def_map prop_map formula)
     (next_process_set def_map modality ts)
+
 
 and check_prop_call def_map prop_map prop_name params process =
   let (Proposition (nom, expected_params, formula)) =
