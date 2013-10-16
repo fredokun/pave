@@ -57,10 +57,10 @@ let rec string_of_formula : formula -> string = function
 
 type proposition = Proposition of string * string list * formula
 
-let string_of_prop_header (name, params, _) =
+let string_of_prop_header (Proposition(name, params, _)) =
   name ^ (string_of_args (fun x -> x) params)
 
-let string_of_proposition ((_, _, formula) as prop) =
+let string_of_proposition (Proposition(_, _, formula) as prop) =
   "prop " ^ (string_of_prop_header prop) ^ " = " ^ (string_of_formula formula)
 
 let rec formula_of_preformula formula =

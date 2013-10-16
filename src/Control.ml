@@ -335,108 +335,16 @@ let register_proposition prop =
 let handle_prop name params formula =
   if !script_mode then
     printf "> %s\n%!" (string_of_formula formula) ;
-  register_proposition @@ (name, params, formula);
+  register_proposition @@ Proposition(name, params, formula);
   printf "Proposition '%s' registered\n%!" name
 
 
-
-(*
-
-Dans checklocal :
-   - on normalise le proc
-   - une fois dans Fmodal : on appelle next_process_set et on
-   appelle check sur l'ensemble résultat
-*)
-
-let transitions_of nproc = derivatives global_definition_map nproc
-
-(* Semop.PSet : set de processus *)
-
-
-let check_label_prefixes lbl pref =
-  let open Presyntax in
-  match pref, lbl with
-  | PTau, T_Tau -> true
-  | (PIn (PName s1), (T_In s2)) when s1 = s2 -> true
-  | (POut (PName s1), (T_Out s2)) when s1 = s2 -> true
-  | _ -> false
-
-
-(* recupère l'ensemble des processus suivants de nproc *)
-let next_process_set modality ts =
-  TSet.fold (fun t set ->
-    let _, mod_to_check, destination = t in
-    let is_next =
-      match modality, mod_to_check with
-      | ((Strong | Weak), _, Rany), _ -> true
-      | ((Strong | Weak), _, Rout), (T_Out _) -> true
-      | ((Strong | Weak), _, Rin), (T_In _) -> true
-
-      | (_, _, Rpref acts), label -> List.exists
-        (check_label_prefixes label) acts
-
-      | _ -> false
-    in
-    if is_next then PSet.add destination set else set
-  ) ts PSet.empty
-
-
-(*
-mod_to_check :
-
-W: weak
-Possibly : <>
-Necessity : []
-
-type preprefix =
-  | PTau
-  | PIn of preexpr
-  | POut of preexpr
-  | PReceive of preexpr * string * string
-  | PSend of preexpr * preexpr
-
-type label = T_Tau | T_In of name | T_Out of name
-
-=============
-
-type restr = Rin | Rout | Rany | Rpref of preprefix list
-type existence = Possibly | Necessity
-type strength = Weak | Strong
-type modality = strength * existence * restr
-
-*)
-
-let handle_check_local formula proc =
-  let nproc = normalize proc in
-  let rec check formula p =
-    match formula with
-      | FTrue -> true
-      | FFalse -> false
-      | FAnd (f1, f2) -> check f1 p && check f2 p
-      | FOr (f1, f2) -> check f1 p || check f2 p
-      | FImplies (f1, f2) -> check f1 p |> not || check f2 p
-      | FModal (modality, formula) ->
-        let ts = transitions_of p in
-	let quantif = match modality with
-	  | _, Necessity, _ -> PSet.for_all 
-	  | _, Possibly, _  -> PSet.exists in
-	quantif (check formula) (next_process_set modality ts)
-    (* transitions : <a> [a] *)
-      (* | FInvModal (modality, formula) -> assert false (\* TODO *\) *)
-      (* transitions : not <a> ou not [a] *)
-      | _-> assert false
-  (* | FProp (prop, params) -> assert false (\* TODO *\) *)
-  (* | FVar var -> *)
-  (*   (\* begin try let name, params, _ = fetch_prop prop in *\) *)
-  (*   assert false (\* TODO *\) *)
-  (* (\* with Not_found -> raise @@ Error (Unbound_Proposition prop) *\) *)
-  (* (\* end *\) *)
-  (* | FMu (x, f) -> assert false (\* TODO *\) *)
-  (* | FNu (x, f) -> assert false (\* TODO *\) *)
+let handle_check_local formula process = 
+  let nproc = Normalize.normalize process in
+  let res = 
+    Check.check global_definition_map global_proposition_map formula nproc
   in
-  let res = check formula nproc in
   if res then printf "TRUE PROPERTY\n"
   else printf "FALSE PROPERTY\n"
 
-
-let handle_check_global f p = assert false (* TODO *)
+let handle_check_global formula process = assert false (* TODO *)
