@@ -374,8 +374,8 @@
   | formula IMPLIES formula { FImplies ($1,$3) }
   | modality formula { FModal($1,$2) }
   | TILD modality formula { FInvModal($2,$3) }
-  | MU LPAREN IDENT RPAREN DOT formula { FMu ($3,$6) }
-  | NU LPAREN IDENT RPAREN DOT formula { FNu ($3,$6) }
+  | MU LPAREN IDENT RPAREN DOT formula { FMu ($3, [], $6) }
+  | NU LPAREN IDENT RPAREN DOT formula { FNu ($3, [], $6) }
   | IDENT LPAREN list_of_formulas RPAREN { FProp($1,$3) }
   | IDENT { FVar($1) }
 

@@ -339,12 +339,12 @@ let handle_prop name params formula =
   printf "Proposition '%s' registered\n%!" name
 
 
-let handle_check_local formula process = 
+let handle_check_local formula process =
   let nproc = Normalize.normalize process in
-  let res = 
+  let res =
     Check.check global_definition_map global_proposition_map formula nproc
   in
   if res then printf "TRUE PROPERTY\n"
   else printf "FALSE PROPERTY\n"
 
-let handle_check_global formula process = assert false (* TODO *)
+let handle_check_global _formula _process = assert false (* TODO *)

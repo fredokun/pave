@@ -58,19 +58,23 @@ let beta_reduce in_formula expected_var replacement =
   | FModal (modality, formula) -> FModal(modality, beta_reduce formula)
 (* transitions : <a> [a] *)
   | FInvModal (modality, formula) -> FInvModal(modality, beta_reduce formula)
-  | FProp (prop_name, params) -> in_formula
+  | FProp _ -> in_formula
   | FVar var when var = expected_var -> replacement
-  | FMu (x, formula) -> FMu(x, beta_reduce formula)
-  | FNu (x, formula) -> FNu(x, beta_reduce formula)
+  | FVar _ -> in_formula
+  | FMu (x, env, formula) -> FMu(x, env, beta_reduce formula)
+  | FNu (x, env, formula) -> FNu(x, env, beta_reduce formula)
+  | FNot formula -> FNot (beta_reduce formula)
   in
   beta_reduce in_formula
 
 
 let rec check def_map prop_map formula nproc =
-  Printf.printf "Checking %s |- %s\n" (Normalize.string_of_nprocess nproc)
-    (string_of_formula formula);
-  let rec check_internal = function
+  let rec check_internal formula =
+    Printf.printf "Checking %s |- %s\n" (Normalize.string_of_nprocess nproc)
+      (string_of_formula formula);
+    match formula with
     | FTrue -> true
+    | FNot formula -> not @@ check_internal formula
     | FFalse -> false
     | FAnd (f1, f2) -> check_internal f1 && check_internal f2
     | FOr (f1, f2) -> check_internal f1 || check_internal f2
@@ -85,12 +89,16 @@ let rec check def_map prop_map formula nproc =
         check_prop_call def_map prop_map prop_name params nproc
     | FVar var ->
         check_prop_call def_map prop_map var [] nproc
-    | FMu (x, formula) ->
-      let reduced_formula = beta_reduce formula x @@ (FMu (x, formula)) in
-      check_internal reduced_formula
-
-  (* | FNu (x, f) -> assert false (\* TODO *\) *)
-    | _-> assert false
+    | FMu (x, env, formula) ->
+      let formula' =
+        FNot (FNu (x, env, FNot (beta_reduce formula x (FNot (FVar x)))))
+      in check_internal formula'
+    | FNu (_, env, _) when List.mem nproc env -> true
+    | FNu (x, env, formula) ->
+        let reduced_formula =
+          beta_reduce formula x @@ FNu(x, nproc::env, formula)
+        in
+        check_internal reduced_formula
   in
   check_internal formula
 
@@ -108,7 +116,7 @@ and check_modality def_map prop_map modality formula process =
 
 
 and check_prop_call def_map prop_map prop_name params process =
-  let (Proposition (nom, expected_params, formula)) =
+  let (Proposition (_, expected_params, formula)) =
     try
       Hashtbl.find prop_map prop_name
     with Not_found -> raise @@ Error(Unbound_Proposition prop_name)
