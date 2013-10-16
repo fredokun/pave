@@ -368,9 +368,9 @@ let next_process_set modality ts =
     let _, mod_to_check, destination = t in
     let is_next =
       match modality, mod_to_check with
-      | ((Strong | Weak), (Possibly | Necessity), Rany), _ -> true
-      | ((Strong | Weak), (Possibly | Necessity), Rout), (T_Out _) -> true
-      | ((Strong | Weak), (Possibly | Necessity), Rin), (T_In _) -> true
+      | ((Strong | Weak), _, Rany), _ -> true
+      | ((Strong | Weak), _, Rout), (T_Out _) -> true
+      | ((Strong | Weak), _, Rin), (T_In _) -> true
 
       | (_, _, Rpref acts), label -> List.exists
         (check_label_prefixes label) acts
@@ -380,8 +380,6 @@ let next_process_set modality ts =
     if is_next then PSet.add destination set else set
   ) ts PSet.empty
 
-
-let is_necessity = function  _, Necessity, _ -> true | _ -> false
 
 (*
 mod_to_check :
@@ -419,12 +417,10 @@ let handle_check_local formula proc =
       | FImplies (f1, f2) -> check f1 p |> not || check f2 p
       | FModal (modality, formula) ->
         let ts = transitions_of p in
-        let necessity = is_necessity modality in
-        necessity && ts = TSet.empty
-        || (necessity &&
-               PSet.for_all (check formula) @@ next_process_set modality ts)
-        || PSet.exists (check formula) @@ next_process_set modality ts
-
+	let quantif = match modality with
+	  | _, Necessity, _ -> PSet.for_all 
+	  | _, Possibly, _  -> PSet.exists in
+	quantif (check formula) (next_process_set modality ts)
     (* transitions : <a> [a] *)
       (* | FInvModal (modality, formula) -> assert false (\* TODO *\) *)
       (* transitions : not <a> ou not [a] *)
