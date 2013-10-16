@@ -2,6 +2,7 @@
 
 open Printf
 
+open Normalize
 open Presyntax
 open Utils
 
@@ -39,8 +40,8 @@ type formula =
   | FInvModal of modality * formula
   | FProp of string * formula list
   | FVar of string
-  | FMu of string * formula
-  | FNu of string * formula
+  | FMu of string * nprocess list * formula
+  | FNu of string * nprocess list * formula
 
 let rec string_of_formula : formula -> string = function
   | FTrue -> "True"
@@ -52,8 +53,12 @@ let rec string_of_formula : formula -> string = function
   | FInvModal(m,f) ->  "~" ^ (string_of_modality m) ^ (string_of_formula f)
   | FProp(prop,params) -> prop ^ (string_of_collection "(" ")" "," string_of_formula params)
   | FVar(var) -> var
-  | FMu(x,f) -> sprintf "Mu(%s).%s" x (string_of_formula f)
-  | FNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
+  | FMu(x, env, f) -> 
+      sprintf "Mu(%s){%s}.%s" x (string_of_args string_of_nprocess env) 
+      (string_of_formula f)
+  | FNu(x, env, f) -> 
+      sprintf "Nu(%s){%s}.%s" x (string_of_args string_of_nprocess env) 
+      (string_of_formula f)
 
 type proposition = Proposition of string * string list * formula
 
@@ -79,5 +84,5 @@ let rec formula_of_preformula formula =
   | FVar var ->
       printf "%s : Not implemented\n" @@ string_of_formula formula;
       formula
-  | FMu (x, f) -> FMu (x, formula_of_preformula f)
-  | FNu (x, f) -> FNu (x, formula_of_preformula f)
+  | FMu (x, env, f) -> FMu (x, env, formula_of_preformula f)
+  | FNu (x, env, f) -> FNu (x, env, formula_of_preformula f)

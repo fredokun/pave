@@ -58,10 +58,11 @@ let beta_reduce in_formula expected_var replacement =
   | FModal (modality, formula) -> FModal(modality, beta_reduce formula)
 (* transitions : <a> [a] *)
   | FInvModal (modality, formula) -> FInvModal(modality, beta_reduce formula)
-  | FProp (prop_name, params) -> in_formula
+  | FProp _ -> in_formula
   | FVar var when var = expected_var -> replacement
-  | FMu (x, formula) -> FMu(x, beta_reduce formula)
-  | FNu (x, formula) -> FNu(x, beta_reduce formula)
+  | FVar _ -> in_formula
+  | FMu (x, env, formula) -> FMu(x, env, beta_reduce formula)
+  | FNu (x, env, formula) -> FNu(x, env, beta_reduce formula)
   in
   beta_reduce in_formula
 
@@ -91,9 +92,10 @@ type modality = strength * existence * restr
 *)
 
 let rec check def_map prop_map formula nproc =
-  Printf.printf "Checking %s |- %s\n" (Normalize.string_of_nprocess nproc)
-    (string_of_formula formula);
-  let rec check_internal = function
+  let rec check_internal formula =
+    Printf.printf "Checking %s |- %s\n" (Normalize.string_of_nprocess nproc)
+      (string_of_formula formula);
+    match formula with
     | FTrue -> true
     | FFalse -> false
     | FAnd (f1, f2) -> check_internal f1 && check_internal f2
@@ -109,13 +111,17 @@ let rec check def_map prop_map formula nproc =
         check_prop_call def_map prop_map prop_name params nproc
     | FVar var ->
         check_prop_call def_map prop_map var [] nproc
-    | _-> assert false
   (*   (\* begin try let name, params, _ = fetch_prop prop in *\) *)
   (*   assert false (\* TODO *\) *)
   (* (\* with Not_found -> raise @@ Error (Unbound_Proposition prop) *\) *)
   (* (\* end *\) *)
-  (* | FMu (x, f) -> assert false (\* TODO *\) *)
-  (* | FNu (x, f) -> assert false (\* TODO *\) *)
+    | FNu (x, env, formula) when List.mem nproc env -> true
+    | FNu (x, env, formula) -> 
+        let reduced_formula = 
+          beta_reduce formula x @@ FNu(x, nproc::env, formula) 
+        in
+        check_internal reduced_formula
+    | FMu (x, env, f) -> assert false
   in
   check_internal formula
 
