@@ -62,14 +62,6 @@ match !load_file with
 	| Parsing.Parse_error ->
           parse_error_msg ~interactive_mode:true lexbuf
 
-        | Presyntax.Type_Exception msg ->
-          printf " ==> %s\n%!" msg
-        | Presyntax.Vardef_Exception name ->
-          printf " ==> Undefined var \"%s\"\n%!" name
-        | Presyntax.Typedef_Exception name ->
-          printf " ==> Undefined type \"%s\"\n%!" name
-        | Utils.Non_Implemented_Exception ->
-          printf " ==> Unimplemented action\n%!"
         | Control.Error e -> Control.print_error e
 
     done

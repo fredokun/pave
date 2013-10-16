@@ -37,7 +37,7 @@ type formula =
   | FImplies of formula * formula
   | FModal of modality * formula
   | FInvModal of modality * formula
-  | FProp of string * (string list)
+  | FProp of string * formula list
   | FVar of string
   | FMu of string * formula
   | FNu of string * formula
@@ -50,7 +50,7 @@ let rec string_of_formula : formula -> string = function
   | FImplies(f,g) -> sprintf "(%s ==> %s)" (string_of_formula f) (string_of_formula g)
   | FModal(m,f) -> (string_of_modality m) ^ (string_of_formula f)
   | FInvModal(m,f) ->  "~" ^ (string_of_modality m) ^ (string_of_formula f)
-  | FProp(prop,params) -> prop ^ (string_of_collection "(" ")" "," (fun s -> s) params)
+  | FProp(prop,params) -> prop ^ (string_of_collection "(" ")" "," string_of_formula params)
   | FVar(var) -> var
   | FMu(x,f) -> sprintf "Mu(%s).%s" x (string_of_formula f)
   | FNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
@@ -58,7 +58,7 @@ let rec string_of_formula : formula -> string = function
 type proposition = Proposition of string * string list * formula
 
 let string_of_prop_header (Proposition(name, params, _)) =
-  name ^ (string_of_args (fun x -> x) params)
+  name
 
 let string_of_proposition (Proposition(_, _, formula) as prop) =
   "prop " ^ (string_of_prop_header prop) ^ " = " ^ (string_of_formula formula)
@@ -73,10 +73,10 @@ let rec formula_of_preformula formula =
   | FImplies (f1, f2) -> FImplies (formula_of_preformula f1, formula_of_preformula f2)
   | FModal (m, f) -> FModal (m, formula_of_preformula f)
   | FInvModal (m, f) -> FInvModal (m, formula_of_preformula f)
-  | FProp (_prop, _params) ->
+  | FProp (prop, params) ->
       printf "%s : Not implemented\n" @@ string_of_formula formula;
-      formula
-  | FVar _var ->
+      FProp(prop, List.map formula_of_preformula params)
+  | FVar var ->
       printf "%s : Not implemented\n" @@ string_of_formula formula;
       formula
   | FMu (x, f) -> FMu (x, formula_of_preformula f)

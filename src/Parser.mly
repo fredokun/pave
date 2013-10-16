@@ -361,6 +361,11 @@
   | /* empty */ { [] }
   | expr list_of_exprs { $1::$2 }
 
+
+      list_of_formulas:
+  | /* empty */ { [] }
+  | formula list_of_formulas { $1::$2 }
+
       formula:
   | TRUE { FTrue }
   | FALSE { FFalse }
@@ -371,7 +376,7 @@
   | TILD modality formula { FInvModal($2,$3) }
   | MU LPAREN IDENT RPAREN DOT formula { FMu ($3,$6) }
   | NU LPAREN IDENT RPAREN DOT formula { FNu ($3,$6) }
-  | IDENT LPAREN list_of_names RPAREN { FProp($1,$3) }
+  | IDENT LPAREN list_of_formulas RPAREN { FProp($1,$3) }
   | IDENT { FVar($1) }
 
       modality:
