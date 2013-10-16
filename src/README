@@ -27,3 +27,65 @@ Control.handle_global_check :
 
 TODO :
 
+
+
+
+CCS et µcalcul "pur" et "par valeur" :
+
+Vu en cours :
+
+µ-calcul "pur" : 
+  
+<a!> A |- P : Ok s'il existe P' tel que P-a!->P' et A |- P'
+
+<<a!>> A |- P
+  Ok si il existe un P' tq
+     	- P -tau-> *P1 -a!-> P2 -tau -> *P'
+	- et A |- P'
+  
+
+µ-calcul par valeur :
+  
+const %N=3
+type Range = [0..%N]
+
+def Incr = in ?($n:Range), 
+    [when $n < %N out!($n+1), Incr +  when $n = %N stop !,0]
+
+
+
+Ceci est transformé en CCS pur de la façon suivante :
+
+
+def Incr =
+
+in_0 ?, [out_1 !,Incr + 0]
+
++ in_1 ?, [out_2 !,Incr + 0]
+
++ in_2 ?, [out_3 !,Incr + 0]
+
++ in_3, [0 + stop !,0]
+
+
+Une formule "par valeur" comme par exemple :
+
+
+forall $n:Range, $n < %N  ==> <in ?($n)> true
+
+devient une formule "pure" :
+
+
+(true => <in_0 ?>True)
+
+and (true => <in_1 ?>True)
+
+and (true => <in_2 ?>True)
+
+
+
+
+On ajoute :
+Forall
+Exists
+conditions du type : 
