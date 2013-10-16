@@ -73,10 +73,10 @@ let rec formula_of_preformula formula =
   | FImplies (f1, f2) -> FImplies (formula_of_preformula f1, formula_of_preformula f2)
   | FModal (m, f) -> FModal (m, formula_of_preformula f)
   | FInvModal (m, f) -> FInvModal (m, formula_of_preformula f)
-  | FProp (prop, params) -> 
+  | FProp (_prop, _params) ->
       printf "%s : Not implemented\n" @@ string_of_formula formula;
       formula
-  | FVar var -> 
+  | FVar _var ->
       printf "%s : Not implemented\n" @@ string_of_formula formula;
       formula
   | FMu (x, f) -> FMu (x, formula_of_preformula f)

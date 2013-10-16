@@ -23,24 +23,23 @@ let check_label_prefixes lbl pref =
   | _ -> false
 
 
-(* recupère l'ensemble des processus suivants de nproc *)
-let next_process_set modality transitions =
+let rec next_process_set def_map modality transitions =
   let choose transition destination_set =
     let _, mod_to_check, destination = transition in
-    let is_next =
-      match modality, mod_to_check with
-      | ((Strong | Weak), _, Rany), _ -> true
-      | ((Strong | Weak), _, Rout), (T_Out _) -> true
-      | ((Strong | Weak), _, Rin), (T_In _) -> true
-
-      | (_, _, Rpref acts), label -> 
-        List.exists (check_label_prefixes label) acts
-
-      | _ -> false
-    in
-    if is_next then PSet.add destination destination_set else destination_set
-  in
-    TSet.fold choose transitions PSet.empty
+    match modality, mod_to_check with
+    | ((Strong | Weak), _, Rany), _
+    | ((Strong | Weak), _, Rout), (T_Out _)
+    | ((Strong | Weak), _, Rin), (T_In _) ->
+      PSet.add destination destination_set
+    | (Weak, _, _), T_Tau ->
+      PSet.union destination_set @@
+        next_process_set def_map modality (transitions_of def_map destination)
+    | (_, _, Rpref acts), label ->
+      if List.exists (check_label_prefixes label) acts then
+        PSet.add destination destination_set
+      else destination_set
+    | _ -> destination_set
+  in TSet.fold choose transitions PSet.empty
 
 
 (*
@@ -76,17 +75,15 @@ let rec check def_map prop_map formula nproc =
     | FAnd (f1, f2) -> check_internal f1 && check_internal f2
     | FOr (f1, f2) -> check_internal f1 || check_internal f2
     | FImplies (f1, f2) -> check_internal f1 |> not || check_internal f2
-    | FModal (modality, formula) -> 
+    | FModal (modality, formula) ->
         check_modality def_map prop_map modality formula nproc
-  (* transitions : <a> [a] *)
-    | FInvModal (modality, formula) -> 
+    | FInvModal (modality, formula) ->
         not @@ check_modality def_map prop_map modality formula nproc
         (* TODO : à vérifier la correctness *)
-    (* transitions : not <a> ou not [a] *)
     | _-> assert false
-    | FProp (prop, params) -> 
+    | FProp (prop, params) ->
       let (Proposition (nom, expected_params, formula)) =
-        try 
+        try
           Hashtbl.find prop_map prop
         with Not_found -> assert false (* TODO *)
       in
@@ -107,11 +104,12 @@ let rec check def_map prop_map formula nproc =
   in
   check_internal formula
 
-and check_modality def_map prop_map modality formula process = 
+and check_modality def_map prop_map modality formula process =
   let ts = transitions_of def_map process  in
   let quantif = match modality with
-    | _, Necessity, _ -> PSet.for_all 
-    | _, Possibly, _  -> PSet.exists 
+    | _, Necessity, _ -> PSet.for_all
+    | _, Possibly, _  -> PSet.exists
   in
-  quantif (check def_map prop_map formula) (next_process_set modality ts)
+  quantif (check def_map prop_map formula)
+    (next_process_set def_map modality ts)
 
