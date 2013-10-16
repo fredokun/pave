@@ -1,6 +1,13 @@
 open Formula
 open Semop
 
+
+type error = Unbound_Proposition of string
+exception Error of error
+
+let print_error = function
+  | Unbound_Proposition s -> Printf.printf "unbound proposition %s" s
+
 (*
 
 Dans checklocal :
@@ -43,6 +50,22 @@ let next_process_set modality transitions =
     TSet.fold choose transitions PSet.empty
 
 
+let beta_reduce in_formula expected_var replacement =
+  let rec beta_reduce = function
+  | FTrue | FFalse -> in_formula
+  | FAnd (f1, f2) -> FAnd(beta_reduce f1, beta_reduce f2)
+  | FOr (f1, f2) -> FOr(beta_reduce f1, beta_reduce f2)
+  | FImplies (f1, f2) -> FImplies(beta_reduce f1, beta_reduce f2)
+  | FModal (modality, formula) -> FModal(modality, beta_reduce formula)
+(* transitions : <a> [a] *)
+  | FInvModal (modality, formula) -> FInvModal(modality, beta_reduce formula)
+  | FProp (prop_name, params) -> in_formula
+  | FVar var when var = expected_var -> replacement 
+  | FMu (x, formula) -> FMu(x, beta_reduce formula)
+  | FNu (x, formula) -> FNu(x, beta_reduce formula)
+  in
+  beta_reduce in_formula
+
 (*
 mod_to_check :
 
@@ -69,8 +92,9 @@ type modality = strength * existence * restr
 *)
 
 let rec check def_map prop_map formula nproc =
-  let rec check_internal formula =
-    match formula with
+  Printf.printf "Checking %s |- %s\n" (Normalize.string_of_nprocess nproc)
+    (string_of_formula formula);
+  let rec check_internal = function
     | FTrue -> true
     | FFalse -> false
     | FAnd (f1, f2) -> check_internal f1 && check_internal f2
@@ -83,21 +107,11 @@ let rec check def_map prop_map formula nproc =
         not @@ check_modality def_map prop_map modality formula nproc
         (* TODO : à vérifier la correctness *)
     (* transitions : not <a> ou not [a] *)
+    | FProp (prop_name, params) -> 
+        check_prop_call def_map prop_map prop_name params nproc
+    | FVar var -> 
+        check_prop_call def_map prop_map var [] nproc
     | _-> assert false
-    | FProp (prop, params) -> 
-      let (Proposition (nom, expected_params, formula)) =
-        try 
-          Hashtbl.find prop_map prop
-        with Not_found -> assert false (* TODO *)
-      in
-      let params_length1 = List.length params in
-      let params_length2 = List.length expected_params in
-      if params_length1 <> params_length2 then
-        assert false (* TODO *)
-      else
-        assert false
-        (* beta_reduce all params *)
-  (* | FVar var -> *)
   (*   (\* begin try let name, params, _ = fetch_prop prop in *\) *)
   (*   assert false (\* TODO *\) *)
   (* (\* with Not_found -> raise @@ Error (Unbound_Proposition prop) *\) *)
@@ -115,3 +129,20 @@ and check_modality def_map prop_map modality formula process =
   in
   quantif (check def_map prop_map formula) (next_process_set modality ts)
 
+and check_prop_call def_map prop_map prop_name params process = 
+  let (Proposition (nom, expected_params, formula)) =
+    try 
+      Hashtbl.find prop_map prop_name
+    with Not_found -> raise @@ Error(Unbound_Proposition prop_name)
+  in
+  let params_length1 = List.length params in
+  let params_length2 = List.length expected_params in
+  if params_length1 <> params_length2 then
+    failwith "unmatched length"  
+  else
+    let params_map = List.combine expected_params params in
+    let reduce_param formula (expected_param, param) =
+        beta_reduce formula expected_param param
+    in
+    let reduced_formula = List.fold_left reduce_param formula params_map in
+    check def_map prop_map reduced_formula process
