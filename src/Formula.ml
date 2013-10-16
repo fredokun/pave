@@ -79,21 +79,22 @@ let string_of_prop_header (name, params, _) =
 let string_of_proposition ((_, _, formula) as prop) =
   "prop " ^ (string_of_prop_header prop) ^ " = " ^ (string_of_formula formula)
 
-let rec formula_of_preformula : formula -> formula = function
-  | _ as f -> 
-    printf "Transforming %s\n" @@ string_of_formula f;
-    printf "Not implemented\n";
-    f
- (* function
-  | FTrue
-  | FFalse
-  | FAnd (f, g)
-  | FOr (f, g)
-  | FImplies (f, g)
-  | FModal (m, f)
-  | FInvModal (m, f)
-  | FProp (prop, params)
-  | FVar var
-  | FMu (x, f)
-  | FNu (x, f) -> *)
+let rec formula_of_preformula formula =
+  printf "Transforming %s\n" @@ string_of_formula formula;
+  match formula with
+  | FTrue -> formula
+  | FFalse ->  formula
+  | FAnd (f1, f2) -> FAnd (formula_of_preformula f1, formula_of_preformula f2)
+  | FOr (f1, f2) -> FOr (formula_of_preformula f1, formula_of_preformula f2)
+  | FImplies (f1, f2) -> FImplies (formula_of_preformula f1, formula_of_preformula f2)
+  | FModal (m, f) -> FModal (m, formula_of_preformula f)
+  | FInvModal (m, f) -> FInvModal (m, formula_of_preformula f)
+  | FProp (prop, params) -> 
+      printf "%s : Not implemented\n" @@ string_of_formula formula;
+      formula
+  | FVar var -> 
+      printf "%s : Not implemented\n" @@ string_of_formula formula;
+      formula
+  | FMu (x, f) -> FMu (x, formula_of_preformula f)
+  | FNu (x, f) -> FNu (x, formula_of_preformula f)
 
