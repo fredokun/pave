@@ -151,6 +151,22 @@ let add_prop name idents formula =
       Hashtbl.add props name (idents, formula)
     end
 
+
+let reduce f var value =
+  let rec step = function
+  | FVar v -> if v = var then value else FVar v
+  | FTrue | FFalse as f -> f
+  | FAnd (f, g) -> FAnd (step f, step g)
+  | FOr (f, g) -> FOr (step f, step g)
+  | FImplies (f, g) -> FImplies (step f, step g)
+  | FModal(m, f) -> FModal (m, step f)
+  | FInvModal (m, f) -> FInvModal (m, step f)
+  | FMu (x, f) -> FMu (x, step f)
+  | FNu (x, f) -> FNu (x, step f)
+  | _ -> assert false (* Technically, no Prop should remain ? *)
+  in
+  step f
+
 let substitute f sub_list =
   let rec step sl = function
   | FVar v -> FVar (List.assoc v sl)
@@ -298,53 +314,53 @@ let compute_modality modl tr =
     get_matching_derivations io tr
   | Weak, _, _ -> failwith "Weak not implemented yet"
 
+
 let handle_check_local form proc =
   let proc = normalize proc in
+  let pset = PSet.empty in
 
-  let rec step proc = function
+  let rec step proc pset = function
     | FTrue -> true
     | FFalse -> false
-    | FNot f -> not @@ step proc f
-    | FAnd (f, g) -> step proc f && step proc g
-    | FOr (f, g) -> step proc f || step proc g
-    | FImplies (f, g) -> not (step proc f) || step proc g
-    | FModal (m, f) when diamond m ->
+    | FNot f -> not @@ step proc pset f
+    | FAnd (f, g) -> step proc pset f && step proc pset g
+    | FOr (f, g) -> step proc pset f || step proc pset g
+    | FImplies (f, g) -> not (step proc pset f) || step proc pset g
+    | FModal (m, f) ->
       let d = compute_derivation proc in
       let res = compute_modality m d in
-      TSet.fold (fun t _ -> print_endline @@ string_of_derivative t) res ();
-      if TSet.is_empty res then false (* meaning there is no transition *)
-      else
+      if TSet.is_empty res then not @@ diamond m
+      else if diamond m then
         TSet.fold
           (fun (_, _, p') acc ->
             if acc then acc (* no need to test the transition if one is
                                true *)
-            else step p' f)
+            else step p' pset f)
           res
           false
-    | FModal (m, f) ->
-      Format.printf "Box case@.";
-      (try
-        let d = compute_derivation proc in
-        let res = compute_modality m d in
-        TSet.fold (fun t _ -> print_endline @@ string_of_derivative t) res ();
-        if TSet.is_empty res then true (* meaning there is no transition *)
-        else
-          begin
-            Format.printf "Okay, let's test each transition now@.";
-            TSet.fold
-              (fun (_, _, p') acc ->
-                if not acc then acc (* no need to test the transition if one is
-                                           false *)
-                else step p' f)
-              res
-              true
-          end
+      else
+        TSet.fold
+          (fun (_, _, p') acc ->
+            if not acc then acc (* no need to test the transition if one is
+                                   false *)
+            else step p' pset f)
+          res
+          true
+    | FNu (x, f) as nu -> if PSet.mem proc pset then true
+      else
+        let f = reduce f x nu in
+        let pset = PSet.add proc pset in
+        step proc pset f
 
-      with
-        _ -> false)
+    | FMu (x, f) ->
+      let nu = FNu(x, f) in
+      let f' = reduce f x @@ FNot nu in
+      let f = FNot f' in
+      not @@ step proc pset f
+
     | _ -> assert false
   in
-  let res = step proc form in
+  let res = step proc pset form in
   if res then
     Format.printf "The processor given matches the model@."
   else

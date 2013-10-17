@@ -29,7 +29,7 @@ let string_of_args tostr lst = string_of_collection "(" ")" "," tostr lst
 let string_of_set tostr set =
   string_of_collection "{" "}" "," tostr (SSet.elements set)
 
-let string_of_map map = 
+let string_of_map map =
   string_of_collection "{" "}" "," (fun (old,value) -> sprintf "%s/%s" value old) (SMap.bindings map)
 
 
@@ -51,7 +51,7 @@ let forget _ = ()
 
 (* permutations:: 'a list -> 'a list list *)
 let rec permutations =
-  let rec inject_all e n l llen = 
+  let rec inject_all e n l llen =
     if n > llen then []
     else (inject e n l)::(inject_all e (n+1) l llen)
   and inject e n l =
