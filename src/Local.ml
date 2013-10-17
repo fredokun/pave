@@ -47,7 +47,8 @@ let rec next_process_set def_map modality transitions =
 
 
 let beta_reduce in_formula expected_var replacement =
-  let rec beta_reduce = function
+  let rec beta_reduce in_formula = 
+  match in_formula with
   | FTrue | FFalse -> in_formula
   | FAnd (f1, f2) -> FAnd(beta_reduce f1, beta_reduce f2)
   | FOr (f1, f2) -> FOr(beta_reduce f1, beta_reduce f2)
@@ -65,10 +66,7 @@ let beta_reduce in_formula expected_var replacement =
 
 
 let rec check def_map prop_map formula nproc =
-  let rec check_internal formula =
-    Printf.printf "Checking %s |- %s\n" (Normalize.string_of_nprocess nproc)
-      (string_of_formula formula);
-    match formula with
+  let rec check_internal = function
     | FTrue -> true
     | FNot formula -> not @@ check_internal formula
     | FFalse -> false
@@ -85,9 +83,9 @@ let rec check def_map prop_map formula nproc =
         check_prop_call def_map prop_map prop_name params nproc
     | FVar var ->
         check_prop_call def_map prop_map var [] nproc
-    | FMu (x, env, formula) ->
+    | FMu (x, env, mu_formula) ->
       let formula' =
-        FNot (FNu (x, env, FNot (beta_reduce formula x (FNot (FVar x)))))
+        FNot (FNu (x, env, FNot (beta_reduce mu_formula x (FNot (FVar x)))))
       in check_internal formula'
     | FNu (_, env, _) when List.mem nproc env -> true
     | FNu (x, env, formula) ->
@@ -110,19 +108,19 @@ and check_modality def_map prop_map modality formula process =
 
 
 and check_prop_call def_map prop_map prop_name params process =
-  let (Proposition (_, expected_params, formula)) =
+  let (Proposition (_, param_names, formula)) =
     try
       Hashtbl.find prop_map prop_name
     with Not_found -> raise @@ Error(Unbound_Proposition prop_name)
   in
   let params_length1 = List.length params in
-  let params_length2 = List.length expected_params in
+  let params_length2 = List.length param_names in
   if params_length1 <> params_length2 then
     raise @@ Error (Unmatching_length prop_name)
   else
-    let params_map = List.combine expected_params params in
-    let reduce_param formula (expected_param, param) =
-        beta_reduce formula expected_param param
+    let params_map = List.combine param_names params in
+    let reduce_param formula (param_name, param_content) =
+        beta_reduce formula param_name param_content
     in
     let reduced_formula = List.fold_left reduce_param formula params_map in
     check def_map prop_map reduced_formula process
