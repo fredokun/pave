@@ -252,10 +252,10 @@
       { raise (Fatal_Parse_Error "missing process for names") }
 
   | PROP IDENT LPAREN RPAREN EQUAL formula
-      { Control.handle_prop $2 [] (formula_of_preformula $6) }
+      { Control.handle_prop $2 [] (substitute_prop $6) }
 
   | PROP IDENT LPAREN list_of_names RPAREN EQUAL formula
-      { Control.handle_prop $2 $4 (formula_of_preformula $7) }
+      { Control.handle_prop $2 $4 (substitute_prop $7) }
 
   | CHECK_LOCAL formula SATISFY process
       { Control.handle_check_local (formula_of_preformula $2) (process_of_preprocess $4) }
@@ -375,25 +375,29 @@
   | IDENT { FVar($1) }
 
       modality:
-  | INF list_of_prefixes SUP { FPossibly $2 }
-  | INF OUT SUP { FOutPossibly }
-  | INF IN SUP { FInPossibly }
-  | INF DOT SUP { FAnyPossibly }
+  | INF list_of_prefixes SUP
+      { Strong, Possibly, Prefix (Formula.parse_preprefix_list $2) }
+  | INF OUT SUP { Strong, Possibly, Out }
+  | INF IN SUP { Strong, Possibly, In }
+  | INF DOT SUP { Strong, Possibly, Any }
 
-  | INF INF list_of_prefixes SUP SUP { FWPossibly $3 }
-  | INF INF OUT SUP SUP { FWOutPossibly }
-  | INF INF IN SUP SUP { FWInPossibly }
-  | INF INF DOT SUP SUP { FWAnyPossibly }
+  | INF INF list_of_prefixes SUP SUP
+      { Weak, Possibly, Prefix (Formula.parse_preprefix_list $3) }
+  | INF INF OUT SUP SUP { Weak, Possibly, Out }
+  | INF INF IN SUP SUP { Weak, Possibly, In }
+  | INF INF DOT SUP SUP { Weak, Possibly, Any }
 
-  | LBRACKET list_of_prefixes RBRACKET { FNecessity $2 }
-  | LBRACKET OUT RBRACKET { FOutNecessity }
-  | LBRACKET IN RBRACKET { FInNecessity }
-  | LBRACKET DOT RBRACKET { FAnyNecessity }
+  | LBRACKET list_of_prefixes RBRACKET
+      { Strong, Necessity, Prefix (Formula.parse_preprefix_list $2) }
+  | LBRACKET OUT RBRACKET { Strong, Necessity, Out }
+  | LBRACKET IN RBRACKET { Strong, Necessity, In }
+  | LBRACKET DOT RBRACKET { Strong, Necessity, Any }
 
-  | LBRACKET LBRACKET list_of_prefixes RBRACKET RBRACKET { FWNecessity $3 }
-  | LBRACKET LBRACKET OUT RBRACKET RBRACKET { FWOutNecessity }
-  | LBRACKET LBRACKET IN RBRACKET RBRACKET { FWInNecessity }
-  | LBRACKET LBRACKET DOT RBRACKET RBRACKET { FWAnyNecessity }
+  | LBRACKET LBRACKET list_of_prefixes RBRACKET RBRACKET
+      { Weak, Necessity, Prefix (Formula.parse_preprefix_list $3) }
+  | LBRACKET LBRACKET OUT RBRACKET RBRACKET { Weak, Necessity, Out }
+  | LBRACKET LBRACKET IN RBRACKET RBRACKET { Weak, Necessity, In }
+  | LBRACKET LBRACKET DOT RBRACKET RBRACKET { Weak, Necessity, Any }
 
 
 %%
