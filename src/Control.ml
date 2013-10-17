@@ -29,6 +29,13 @@ Command summary:\n\
   wlts <proc>              -> show labelled transition system\n\
   wmini <proc>             -> minimize process\n\
   wfbisim ? <proc> ~~ <proc> -> check weak bisimilarity (fast)\n\
+  prop <name> = <formula> | \n\
+  prop <name> ( <params>,  ) = <formula> \n\
+                           -> register a new propertie with/without params\n\
+  checklocal <formula> |- <proc> \n\
+                           -> local model checking on the given proc\n\
+  checkglobal <formula> |- <proc> \n\
+                           -> local model checking on the given proc\n\
 ---\n\
   help                   -> this help message\n\
   quit                   -> quit the program\n\
@@ -342,9 +349,9 @@ let handle_prop name params formula =
 let handle_check_local formula process =
   let nproc = Normalize.normalize process in
   let res =
-    Check.check global_definition_map global_proposition_map formula nproc
+    Local.check global_definition_map global_proposition_map formula nproc
   in
   if res then printf "TRUE PROPERTY\n"
   else printf "FALSE PROPERTY\n"
 
-let handle_check_global _formula _process = assert false (* TODO *)
+let handle_check_global formula process = Global.check formula process

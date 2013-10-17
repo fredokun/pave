@@ -53,7 +53,8 @@ let rec string_of_formula : formula -> string = function
   | FModal(m,f) -> (string_of_modality m) ^ (string_of_formula f)
   | FInvModal(m,f) ->  "~" ^ (string_of_modality m) ^ (string_of_formula f)
   | FProp(prop,params) -> prop ^ (string_of_collection "(" ")" "," string_of_formula params)
-  | FVar(var) -> var
+  | FVar var -> var
+  | FNot f -> sprintf "not %s" (string_of_formula f)
   | FMu(x, env, f) ->
       sprintf "Mu(%s){%s}.%s" x (string_of_args string_of_nprocess env)
       (string_of_formula f)
@@ -63,7 +64,7 @@ let rec string_of_formula : formula -> string = function
 
 type proposition = Proposition of string * string list * formula
 
-let string_of_prop_header (Proposition(name, params, _)) =
+let string_of_prop_header (Proposition(name, _, _)) =
   name
 
 let string_of_proposition (Proposition(_, _, formula) as prop) =
@@ -74,6 +75,7 @@ let rec formula_of_preformula formula =
   match formula with
   | FTrue -> formula
   | FFalse ->  formula
+  | FNot _ -> formula
   | FAnd (f1, f2) -> FAnd (formula_of_preformula f1, formula_of_preformula f2)
   | FOr (f1, f2) -> FOr (formula_of_preformula f1, formula_of_preformula f2)
   | FImplies (f1, f2) -> FImplies (formula_of_preformula f1, formula_of_preformula f2)
@@ -82,7 +84,7 @@ let rec formula_of_preformula formula =
   | FProp (prop, params) ->
       printf "%s : Not implemented\n" @@ string_of_formula formula;
       FProp(prop, List.map formula_of_preformula params)
-  | FVar var ->
+  | FVar _ ->
       printf "%s : Not implemented\n" @@ string_of_formula formula;
       formula
   | FMu (x, env, f) -> FMu (x, env, formula_of_preformula f)

@@ -61,8 +61,9 @@ match !load_file with
           printf " ==> %s\n%!" msg
 	| Parsing.Parse_error ->
           parse_error_msg ~interactive_mode:true lexbuf
-
-        | Control.Error e -> Control.print_error e
+  | Control.Error e -> Control.print_error e
+  | Local.Error e -> Local.print_error e
+  | Global.Error e -> Global.print_error e
 
     done
   | Some file ->
@@ -80,6 +81,9 @@ match !load_file with
               printf " ==> %s\n%!" msg ; true
 	    | Parsing.Parse_error ->
               parse_error_msg lexbuf ; true
+      | Control.Error e -> Control.print_error e; true
+      | Local.Error e -> Local.print_error e; true
+      | Global.Error e -> Global.print_error e; true
 
 	in
 	  if continue then loop ();

@@ -1,24 +1,21 @@
+(** Local Model Checking Module *)
+
 open Formula
 open Semop
 
 
-type error = Unbound_Proposition of string
+type error =
+| Unbound_Proposition of string
+| Unmatching_length of string
+
 exception Error of error
 
 let print_error = function
-  | Unbound_Proposition s -> Printf.printf "unbound proposition %s" s
-
-(*
-
-Dans checklocal :
-   - on normalise le proc
-   - une fois dans Fmodal : on appelle next_process_set et on
-   appelle check sur l'ensemble résultat
-*)
+  | Unbound_Proposition s -> Printf.printf "unbound proposition %s\n" s
+  | Unmatching_length s ->
+    Printf.printf "unmatching length on proposition %s\n" s
 
 let transitions_of def_map nproc = Semop.derivatives def_map nproc
-
-(* Semop.PSet : set de processus *)
 
 
 let check_label_prefixes lbl pref =
@@ -56,7 +53,6 @@ let beta_reduce in_formula expected_var replacement =
   | FOr (f1, f2) -> FOr(beta_reduce f1, beta_reduce f2)
   | FImplies (f1, f2) -> FImplies(beta_reduce f1, beta_reduce f2)
   | FModal (modality, formula) -> FModal(modality, beta_reduce formula)
-(* transitions : <a> [a] *)
   | FInvModal (modality, formula) -> FInvModal(modality, beta_reduce formula)
   | FProp _ -> in_formula
   | FVar var when var = expected_var -> replacement
@@ -103,8 +99,6 @@ let rec check def_map prop_map formula nproc =
   check_internal formula
 
 
-    (* AND rec *)
-
 and check_modality def_map prop_map modality formula process =
   let ts = transitions_of def_map process  in
   let quantif = match modality with
@@ -124,7 +118,7 @@ and check_prop_call def_map prop_map prop_name params process =
   let params_length1 = List.length params in
   let params_length2 = List.length expected_params in
   if params_length1 <> params_length2 then
-    failwith "unmatched length"
+    raise @@ Error (Unmatching_length prop_name)
   else
     let params_map = List.combine expected_params params in
     let reduce_param formula (expected_param, param) =
