@@ -363,9 +363,11 @@
       formula:
   | TRUE { FTrue }
   | FALSE { FFalse }
+  | LPAREN formula RPAREN { FPar $2 }
   | formula AND formula { FAnd ($1,$3) }
   | formula OR formula { FOr ($1,$3) }
   | formula IMPLIES formula { FImplies ($1,$3) }
+  | modality LPAREN formula RPAREN { FModal($1, $3) }
   | modality formula { FModal($1,$2) }
   | TILD modality formula { FInvModal($2,$3) }
   | MU LPAREN IDENT RPAREN DOT formula { FMu ($3,$6) }

@@ -98,6 +98,7 @@ let diamond = function
 type formula =
   | FTrue
   | FFalse
+  | FPar of formula
   | FAnd of formula * formula
   | FOr of formula * formula
   | FImplies of formula * formula
@@ -112,6 +113,7 @@ type formula =
 let rec string_of_formula : formula -> string = function
   | FTrue -> "True"
   | FFalse -> "False"
+  | FPar f -> sprintf "(%s)" @@ string_of_formula f
   | FAnd(f,g) -> sprintf "(%s and %s)" (string_of_formula f) (string_of_formula g)
   | FOr(f,g) -> sprintf "(%s or %s)" (string_of_formula f) (string_of_formula g)
   | FImplies(f,g) -> sprintf "(%s ==> %s)" (string_of_formula f) (string_of_formula g)
@@ -156,6 +158,7 @@ let reduce f var value =
   let rec step = function
   | FVar v -> if v = var then value else FVar v
   | FTrue | FFalse as f -> f
+  | FPar f -> FPar (step f)
   | FAnd (f, g) -> FAnd (step f, step g)
   | FOr (f, g) -> FOr (step f, step g)
   | FImplies (f, g) -> FImplies (step f, step g)
@@ -171,6 +174,7 @@ let substitute f sub_list =
   let rec step sl = function
   | FVar v -> FVar (List.assoc v sl)
   | FTrue | FFalse as f -> f
+  | FPar f -> FPar (step sl f)
   | FAnd (f, g) -> FAnd (step sl f, step sl g)
   | FOr (f, g) -> FOr (step sl f, step sl g)
   | FImplies (f, g) -> FImplies (step sl f, step sl g)
@@ -185,6 +189,7 @@ let substitute f sub_list =
 let substitute_prop pf =
   let rec step = function
     | FTrue | FFalse as f -> f
+    | FPar f -> FPar (step f)
     | FAnd (f, g) -> FAnd (step f, step g)
     | FOr (f, g) -> FOr (step f, step g)
     | FImplies (f, g) -> FImplies (step f, step g)
@@ -322,6 +327,7 @@ let handle_check_local form proc =
   let rec step proc pset = function
     | FTrue -> true
     | FFalse -> false
+    | FPar f -> step proc pset f
     | FNot f -> not @@ step proc pset f
     | FAnd (f, g) -> step proc pset f && step proc pset g
     | FOr (f, g) -> step proc pset f || step proc pset g
