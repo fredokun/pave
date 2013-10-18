@@ -11,6 +11,18 @@ let print_error = function
 
 
 
+
+let rec obdd_of_modality env modality =
+    match modality with
+    (* | Strong, Possibly, Rany _ *)
+    (* | Strong, Possibly, Rout *)
+    (* | Strong, Possibly, Rin -> *)
+    (* | (Weak, _, _), T_Tau -> *)
+    (* | (_, _, Rpref acts), label -> *)
+    | _ -> assert false
+
+
+
 let rec obdd_of_formula env formula =
   let open Formula in
   let open Obdd in
@@ -18,16 +30,18 @@ let rec obdd_of_formula env formula =
   | FTrue -> One
   | FFalse -> Zero
   | FNot _ -> raise @@ Error (No_global_not)
-  | FAnd (f1, f2) -> Obdd.inter (obdd_of_formula env f1) (obdd_of_formula env f2)
-  | FOr  (f1, f2) -> Obdd.union (obdd_of_formula env f1)
+  | FAnd (f1, f2) -> inter (obdd_of_formula env f1)
+    (obdd_of_formula env f2)
+  | FOr  (f1, f2) -> union (obdd_of_formula env f1)
     (obdd_of_formula env f2)
   (* | FImplies of formula * formula *)
-  | FModal (modality, formula) -> assert false
+  | FModal (modality, f) ->
+    inter (obdd_of_formula env f) (obdd_of_modality env f)
   (* | FInvModal of modality * formula *)
   (* | FProp of string * formula list *)
-  | FVar v -> assert false
+  (* | FVar v -> assert false *)
   (* | FMu of string * nprocess list * formula *)
   (* | FNu of string * nprocess list * formula *)
-   | _ -> assert false
+  | _ -> assert false
 
 let check _formula _proc = assert false (* TODO *)

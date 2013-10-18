@@ -52,9 +52,10 @@ module H2 = Hashtbl.Make
      let equal (o11, o12) (o21, o22) = o11 == o21 && o12 == o22
    end)
 
-let global_table = Obddtbl.create hsize
 
-let construct i o1 o2 =
+let construct =
+  let global_table = Obddtbl.create hsize in
+  fun i o1 o2 ->
   if o2 = Zero then o1 else
     let obdd = Node (!unique_ref, i, o1, o2) in
     try
@@ -83,7 +84,7 @@ let union = memo_rec2 (
         construct i1 (union (l1, l2)) (union (r1, r2))
       else if i1 > i2 then
         construct i2 (union (o1, l2)) r2
-      else (* i1 < i2 *)
+      else
         construct i1 (union (l1, o2)) r1
 )
 
@@ -106,5 +107,4 @@ let inter = memo_rec2 (
           inter (o2, l1)
   )
 
-let inter o1 o2 =
-  inter (o1, o2)
+let inter o1 o2 = inter (o1, o2)
