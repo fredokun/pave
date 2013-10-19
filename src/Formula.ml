@@ -7,6 +7,7 @@ open Utils
 open Global
 open Normalize
 open Semop
+open Bdd
 
 (* mu-calculus formulae *)
 
@@ -352,6 +353,8 @@ let handle_check_local form proc =
             else step p' pset f)
           res
           true
+    | FInvModal(m, f) ->
+      not @@ step proc pset @@ FModal (m,f)
     | FNu (x, f) as nu -> if PSet.mem proc pset then true
       else
         let f = reduce f x nu in
@@ -371,3 +374,14 @@ let handle_check_local form proc =
     Format.printf "The processor given matches the model@."
   else
     Format.printf "Doesn't match, here is why : <not implemented yet>@."
+
+
+let bdd_of_formula f =
+  (* let fix f l = assert false in *)
+  let step f _l =
+    match f with
+    | FTrue -> one
+    | FFalse -> zero
+    | _ -> assert false
+  in
+  step f
