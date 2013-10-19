@@ -78,3 +78,19 @@ let apply =
         HPair.add htbl (b1, b2) res; res
     in
     apply
+
+let rec restrict bool value b =
+  if is_leaf b then b
+  else
+    if b.value < value then
+      let l = restrict bool value b.l in
+      let r = restrict bool value b.r in
+      create b.value l r
+    else if b.value = value then
+      if bool then b.r else b.l
+    else b
+
+let exists value b =
+  let l = restrict false value b in
+  let r = restrict true value b in
+  apply ( or ) l r

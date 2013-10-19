@@ -378,10 +378,27 @@ let handle_check_local form proc =
 
 let bdd_of_formula f =
   (* let fix f l = assert false in *)
-  let step f _l =
+  let implies b1 b2 = (not b1) || b2 in
+  let xor b1 b2  = ((not b1) && b2) || (b1 && (not b2)) in
+  let env = [] in
+  let rec step f env =
     match f with
     | FTrue -> one
     | FFalse -> zero
+    | FNot f -> apply xor (step f env) one
+    | FAnd (f1, f2) ->
+      let b1 = step f1 env in
+      let b2 = step f2 env in
+      apply ( && ) b1 b2
+    | FOr (f1, f2) ->
+      let b1 = step f1 env in
+      let b2 = step f2 env in
+      apply ( && ) b1 b2
+    | FImplies (f1, f2) ->
+      let b1 = step f1 env in
+      let b2 = step f2 env in
+      apply implies b1 b2
+    | FModal (_m, _f) -> assert false
     | _ -> assert false
   in
   step f
