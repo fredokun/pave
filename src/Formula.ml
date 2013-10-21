@@ -9,27 +9,6 @@ open Normalize
 open Semop
 open Bdd
 
-(* mu-calculus formulae *)
-
-(* type modality = *)
-(*   | FPossibly of preprefix list *)
-(*   | FOutPossibly *)
-(*   | FInPossibly *)
-(*   | FAnyPossibly *)
-(*   | FWPossibly of preprefix list *)
-(*   | FWOutPossibly *)
-(*   | FWInPossibly *)
-(*   | FWAnyPossibly *)
-(*   | FNecessity of preprefix list *)
-(*   | FOutNecessity *)
-(*   | FInNecessity *)
-(*   | FAnyNecessity *)
-(*   | FWNecessity of preprefix list *)
-(*   | FWOutNecessity *)
-(*   | FWInNecessity *)
-(*   | FWAnyNecessity *)
-
-
 type fprefix =
 | FIn of string
 | FInVar of string
@@ -75,22 +54,6 @@ let string_of_modality (s, m, io) =
     | Strong, Necessity -> Format.sprintf "[%s]" io
     | Weak, Possibly -> Format.sprintf "<<%s>>" io
     | Weak, Necessity -> Format.sprintf "[[%s]]" io
-  (* | Strong, Possibly, Prefix acts -> string_of_collection "<" ">" ","  string_of_preprefix acts *)
-  (* |  -> "<!>" *)
-  (* | FInPossibly -> "<?>" *)
-  (* | FAnyPossibly -> "<.>" *)
-  (* | FWPossibly(acts) -> string_of_collection "<<" ">>" ","  string_of_preprefix acts *)
-  (* | FWOutPossibly -> "<<!>>" *)
-  (* | FWInPossibly -> "<<?>>" *)
-  (* | FWAnyPossibly -> "<<.>>" *)
-  (* | FNecessity(acts) -> string_of_collection "[" "]" ","  string_of_preprefix acts *)
-  (* | FOutNecessity -> "[!]" *)
-  (* | FInNecessity -> "[?]" *)
-  (* | FAnyNecessity -> "[.]" *)
-  (* | FWNecessity(acts) -> string_of_collection "[[" "]]" ","  string_of_preprefix acts *)
-  (* | FWOutNecessity -> "[[!]]" *)
-  (* | FWInNecessity -> "[[?]]" *)
-  (* | FWAnyNecessity -> "[[.]]" *)
 
 let diamond = function
   | _, Possibly, _ -> true
@@ -380,7 +343,7 @@ let bdd_of_formula f =
   (* let fix f l = assert false in *)
   let implies b1 b2 = (not b1) || b2 in
   let xor b1 b2  = ((not b1) && b2) || (b1 && (not b2)) in
-  let env = [] in
+  let _env = [] in
   let rec step f env =
     match f with
     | FTrue -> one
@@ -393,7 +356,7 @@ let bdd_of_formula f =
     | FOr (f1, f2) ->
       let b1 = step f1 env in
       let b2 = step f2 env in
-      apply ( && ) b1 b2
+      apply ( || ) b1 b2
     | FImplies (f1, f2) ->
       let b1 = step f1 env in
       let b2 = step f2 env in

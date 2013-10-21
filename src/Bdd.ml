@@ -54,7 +54,7 @@ let boolean_equiv b =
   else if b == zero then false
   else assert false
 
-let apply =
+let apply op =
   let htbl = HPair.create 53 in
   let apply_op op b1 b2 =
     let b1 = boolean_equiv b1 in
@@ -62,22 +62,21 @@ let apply =
     let res = op b1 b2 in
     if res then one else zero
   in
-  fun op ->
-    let rec apply b1 b2 =
-      try HPair.find htbl (b1, b2)
-      with Not_found ->
-        let res =
-          if is_leaf b1 && is_leaf b2 then
-            apply_op op b1 b2
-          else if b1.value = b2.value then
-            create b1.value (apply b1.l b2.l) (apply b1.r b2.r)
-          else if b1.value < b2.value then
-            create b1.value (apply b1.l b2) (apply b1.r b2)
-          else create b2.value (apply b1 b2.l) (apply b1 b2.r)
-        in
-        HPair.add htbl (b1, b2) res; res
-    in
-    apply
+  let rec apply b1 b2 =
+    try HPair.find htbl (b1, b2)
+    with Not_found ->
+      let res =
+        if is_leaf b1 && is_leaf b2 then
+          apply_op op b1 b2
+        else if b1.value = b2.value then
+          create b1.value (apply b1.l b2.l) (apply b1.r b2.r)
+        else if b1.value < b2.value then
+          create b1.value (apply b1.l b2) (apply b1.r b2)
+        else create b2.value (apply b1 b2.l) (apply b1 b2.r)
+      in
+      HPair.add htbl (b1, b2) res; res
+  in
+  apply
 
 let rec restrict bool value b =
   if is_leaf b then b
