@@ -1,7 +1,7 @@
 SRCS = $(wildcard *.ml *.mli *.mll *.mly)
 TARGS = stests pave
 KIND = native # d.byte
-FLAGS = -w,Ae,-warn-error,A
+FLAGS = -w,Ae #, -warn-error,A
 
 all: $(TARGS)
 
