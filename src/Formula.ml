@@ -73,3 +73,4 @@ let rec string_of_formula : formula -> string = function
 let formula_of_preformula : formula -> formula =
   failwith "TODO" 
 
+let check : formula -> process -> bool = false
