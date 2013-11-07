@@ -59,6 +59,43 @@ let diamond = function
   | _, Possibly, _ -> true
   | _, _, _ -> false
 
+type preformula =
+  | PFTrue
+  | PFFalse
+  | PFPar of preformula
+  | PFAnd of preformula * preformula
+  | PFOr of preformula * preformula
+  | PFImplies of preformula * preformula
+  | PFModal of modality * preformula
+  | PFInvModal of modality * preformula
+  | PFProp of string * (string list)
+  | PFVar of string
+  | PFMu of string * preformula
+  | PFNu of string * preformula
+  | PFForall of preparam * preexpr * preformula
+  | PFExists of preparam * preexpr * preformula
+
+let rec string_of_preformula : preformula -> string = function
+  | PFTrue -> "True"
+  | PFFalse -> "False"
+  | PFPar f -> sprintf "(%s)" @@ string_of_preformula f
+  | PFAnd(f,g) -> sprintf "(%s and %s)" (string_of_preformula f) (string_of_preformula g)
+  | PFOr(f,g) -> sprintf "(%s or %s)" (string_of_preformula f) (string_of_preformula g)
+  | PFImplies(f,g) -> sprintf "(%s ==> %s)" (string_of_preformula f) (string_of_preformula g)
+  | PFModal(m,f) -> (string_of_modality m) ^ (string_of_preformula f)
+  | PFInvModal(m,f) ->  "~" ^ (string_of_modality m) ^ (string_of_preformula f)
+  | PFProp(prop,params) -> prop ^ (string_of_collection "(" ")" "," (fun s -> s) params)
+  | PFVar(var) -> var
+  | PFMu(x,f) -> sprintf "Mu(%s).%s" x (string_of_preformula f)
+  | PFNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_preformula f)
+  | PFForall (par, pe, f) ->
+    sprintf "(forall %s, %s in %s)"
+      (string_of_preparam par) (string_of_preexpr pe) (string_of_preformula f)
+  | PFExists (par, pe, f) ->
+    sprintf "(exists %s, %s in %s)"
+      (string_of_preparam par) (string_of_preexpr pe) (string_of_preformula f)
+
+
 type formula =
   | FTrue
   | FFalse
@@ -176,7 +213,32 @@ let substitute_prop pf =
   res
 
 
-let formula_of_preformula = substitute_prop
+let formula_of_preformula pf =
+  let rec step = function
+    | PFTrue -> FTrue
+    | PFFalse -> FFalse
+    | PFPar f -> FPar (step f)
+    | PFAnd (f, g) -> FAnd (step f, step g)
+    | PFOr (f, g) -> FOr (step f, step g)
+    | PFImplies (f, g) -> FImplies (step f, step g)
+    | PFModal(m, f) -> FModal (m, step f)
+    | PFInvModal (m, f) -> FInvModal (m, step f)
+    | PFVar v -> FVar v
+    | PFMu (x, f) -> FMu (x, step f)
+    | PFNu (x, f) -> FNu (x, step f)
+    | PFProp (s, il) ->
+      if Hashtbl.mem props s then
+        let (vars, formula) = Hashtbl.find props s in
+        substitute formula @@ List.combine vars il
+      else
+        raise (Unbound_prop s)
+    | PFForall (_, _, f) -> step f
+    | PFExists (_, _, f) -> step f
+  in
+  Format.printf "Preformula received :\n%s@." @@ string_of_preformula pf;
+  let res = step pf in
+  Format.printf "Result :\n%s@." @@ string_of_formula res;
+  res
   (* let rename_modality = assert false (\* function *\) *)
   (*   (\* | FPossibility pl -> *\) *)
   (* in *)
@@ -288,56 +350,77 @@ let handle_check_local form proc =
   let proc = normalize proc in
   let pset = PSet.empty in
 
-  let rec step proc pset = function
-    | FTrue -> true
-    | FFalse -> false
-    | FPar f -> step proc pset f
-    | FNot f -> not @@ step proc pset f
-    | FAnd (f, g) -> step proc pset f && step proc pset g
-    | FOr (f, g) -> step proc pset f || step proc pset g
-    | FImplies (f, g) -> not (step proc pset f) || step proc pset g
+  let rec step proc pset trace = function
+    | FTrue -> true, trace
+    | FFalse -> false, trace
+    | FPar f -> step proc pset trace f
+    | FNot f -> let r, t = step proc pset trace f in
+                (not r, t)
+    | FAnd (f, g) -> let r1, t1 = step proc pset trace f in
+                     let r2, t2 = step proc pset trace g in
+                     if r1 && r2 then true, t1
+                     else if r1 then false, t2
+                     else false, t1
+    | FOr (f, g) -> let r1, t1 = step proc pset trace f in
+                    let r2, _ = step proc pset trace g in
+                    if r1 || r2 then true, t1
+                    else false, t1 (* both can be considered as an incorrect
+                                      trace *)
+    | FImplies (f, g) ->
+      let r1, t1 = step proc pset trace f in
+      let r2, _t2 = step proc pset trace g in
+      if not r1 || r2 then true, t1
+      else false, t1
     | FModal (m, f) ->
       let d = compute_derivation proc in
       let res = compute_modality m d in
-      if TSet.is_empty res then not @@ diamond m
+      if TSet.is_empty res then (not @@ diamond m, trace)
       else if diamond m then
         TSet.fold
-          (fun (_, _, p') acc ->
-            if acc then acc (* no need to test the transition if one is
+          (fun (_, m, p') (r, t) ->
+            if r then r,t (* no need to test the transition if one is
                                true *)
-            else step p' pset f)
+            else step p' pset (m::t) f)
           res
-          false
+          (false, trace)
       else
         TSet.fold
-          (fun (_, _, p') acc ->
-            if not acc then acc (* no need to test the transition if one is
+          (fun (_, m, p') (r, t) ->
+            if not r then r,t (* no need to test the transition if one is
                                    false *)
-            else step p' pset f)
+            else step p' pset (m::t) f)
           res
-          true
+          (true, trace)
     | FInvModal(m, f) ->
-      not @@ step proc pset @@ FModal (m,f)
-    | FNu (x, f) as nu -> if PSet.mem proc pset then true
+      let r, t = step proc pset trace @@ FModal (m,f) in
+      (not r, t)
+    | FNu (x, f) as nu -> if PSet.mem proc pset then true, trace
       else
         let f = reduce f x nu in
         let pset = PSet.add proc pset in
-        step proc pset f
+        step proc pset trace f
 
     | FMu (x, f) ->
       let nu = FNu(x, f) in
       let f' = reduce f x @@ FNot nu in
       let f = FNot f' in
-      not @@ step proc pset f
+      let r, t = step proc pset trace f in
+      not r, t
 
     | _ -> assert false
   in
-  let res = step proc pset form in
+  let (res, trace) = step proc pset [] form in
   if res then
     Format.printf "The processor given matches the model@."
   else
-    Format.printf "Doesn't match, here is why : <not implemented yet>@."
-
+    begin
+      let t = List.rev trace |>
+          List.fold_left (fun acc t ->
+            Format.sprintf "%s --> %s" acc @@ string_of_label t) ""
+      in
+      let t = Format.sprintf "%s --> <stuck>"  t in
+      Format.printf "Doesn't match, here is why: @.%s@." t
+    end
 
 let bdd_of_formula f =
   (* let fix f l = assert false in *)

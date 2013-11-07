@@ -71,9 +71,12 @@
 /* inturals */
 %token <int> INT
 
+/* quantifiers */
+%token FORALL EXISTS
+
 /* punctuation */
 %token LPAREN RPAREN LBRACKET RBRACKET COMMA EQUAL EQEQ TILD COLON
-%token IF THEN ELSE INF SUP INFEQ SUPEQ DIFF DOTDOT LACCOL RACCOL
+%token IF THEN ELSE INF SUP INFEQ SUPEQ DIFF DOTDOT LACCOL RACCOL INDEF
 
 /* operators */
 %token PAR PLUS DOT OUT IN MINUS DIV MULT MOD AND OR NOT IMPLIES
@@ -87,6 +90,7 @@
 %left MULT , DIV , MOD
 %right COMMA
 %left OUT IN
+%left INDEF
 
 %nonassoc UNARY
 
@@ -101,7 +105,7 @@
 %type <preprefix> prefix
 %type <preexpr> expr
 %type <modality> modality
-%type <formula> formula
+%type <preformula> formula
 
   /* grammar */
 %%
@@ -252,10 +256,10 @@
       { raise (Fatal_Parse_Error "missing process for names") }
 
   | PROP IDENT LPAREN RPAREN EQUAL formula
-      { Control.handle_prop $2 [] (substitute_prop $6) }
+      { Control.handle_prop $2 [] (formula_of_preformula $6) }
 
   | PROP IDENT LPAREN list_of_names RPAREN EQUAL formula
-      { Control.handle_prop $2 $4 (substitute_prop $7) }
+      { Control.handle_prop $2 $4 (formula_of_preformula $7) }
 
   | CHECK_LOCAL formula SATISFY process
       { Control.handle_check_local (formula_of_preformula $2) (process_of_preprocess $4) }
@@ -361,20 +365,22 @@
   | expr list_of_exprs { $1::$2 }
 
       formula:
-  | TRUE { FTrue }
-  | FALSE { FFalse }
-  | LPAREN formula RPAREN { FPar $2 }
-  | formula AND formula { FAnd ($1,$3) }
-  | formula OR formula { FOr ($1,$3) }
-  | formula IMPLIES formula { FImplies ($1,$3) }
-  | modality LPAREN formula RPAREN { FModal($1, $3) }
-  | modality formula { FModal($1,$2) }
-  | TILD modality formula { FInvModal($2,$3) }
-  | MU LPAREN IDENT RPAREN DOT formula { FMu ($3,$6) }
-  | NU LPAREN IDENT RPAREN DOT formula { FNu ($3,$6) }
-  | IDENT LPAREN RPAREN { FProp($1, []) }
-  | IDENT LPAREN list_of_names RPAREN { FProp($1,$3) }
-  | IDENT { FVar($1) }
+  | TRUE { PFTrue }
+  | FALSE { PFFalse }
+  | LPAREN formula RPAREN { PFPar $2 }
+  | formula AND formula { PFAnd ($1,$3) }
+  | formula OR formula { PFOr ($1,$3) }
+  | formula IMPLIES formula { PFImplies ($1,$3) }
+  | modality LPAREN formula RPAREN { PFModal($1, $3) }
+  | modality formula { PFModal($1,$2) }
+  | TILD modality formula { PFInvModal($2,$3) }
+  | MU LPAREN IDENT RPAREN DOT formula { PFMu ($3,$6) }
+  | NU LPAREN IDENT RPAREN DOT formula { PFNu ($3,$6) }
+  | IDENT LPAREN RPAREN { PFProp($1, []) }
+  | IDENT LPAREN list_of_names RPAREN { PFProp($1,$3) }
+  | IDENT { PFVar($1) }
+  | FORALL param COMMA expr INDEF formula { PFForall($2, $4, $6) }
+  | EXISTS param COMMA expr INDEF formula { PFExists($2, $4, $6) }
 
       modality:
   | INF list_of_prefixes SUP

@@ -51,7 +51,7 @@ let is_leaf b = b == one || b == zero
 
 let boolean_equiv b =
   (* if b <> from one and zero, assert false will be evaluated *)
-  b == one || (b <> 0 && assert false)
+  b == one || (b <> zero && assert false)
 
 let apply op =
   let htbl = HPair.create 53 in
