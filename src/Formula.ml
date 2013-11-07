@@ -396,8 +396,11 @@ let formula_of_preformula pf =
 (** Local model checker *)
 
 (** takes a normalized processor *)
-let compute_derivation =
-  Semop.derivatives global_definition_map
+let compute_derivation s =
+  if s = Weak then
+    Semop.weak_transitions false global_definition_map
+  else
+    Semop.derivatives global_definition_map
 
 exception Impossible_transition
 
@@ -466,7 +469,8 @@ let handle_check_local form proc =
       if not r1 || r2 then true, t1
       else false, t1
     | FModal (m, f) ->
-      let d = compute_derivation proc in
+      let s,_,_ = m in
+      let d = compute_derivation s proc in
       let res = compute_modality m d in
       if TSet.is_empty res then (not @@ diamond m, trace)
       else if diamond m then
