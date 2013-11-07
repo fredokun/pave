@@ -19,14 +19,16 @@ type fprefix =
 let fprefix_of_preprefix = function
   | PIn (PName n) -> FIn n
   | POut (PName n) -> FOut n
-  | PIn (PVar n) -> FInVar n
-  | POut (PVar n) -> FOutVar n
+  | PIn (PVar n) -> FInVar n (* (String.sub n 1 (String.length n - 1)) *)
+  | POut (PVar n) -> FOutVar n (* (String.sub n 1 (String.length n - 1)) *)
   | PTau -> FTau
   | _ as pr -> failwith (Format.sprintf "Received : %s@." @@ string_of_preprefix pr)
 
 let string_of_fprefix = function
-  | FIn n | FInVar n -> n ^ "?"
-  | FOut n | FOutVar n -> n ^ "!"
+  | FIn n -> n ^ "?"
+  | FInVar n -> "var:" ^ n ^ "?"
+  | FOut n -> n ^ "!"
+  | FOutVar n -> "var:" ^ n ^ "!"
   | FTau -> "tau"
 
 let parse_preprefix_list =
@@ -213,91 +215,183 @@ let substitute_prop pf =
   res
 
 
+let substitute_modality m vars =
+  let rename_modal (s,mo,io) =
+    match io with
+    | In | Out | Any -> m
+    | Prefix l ->
+      s, mo, Prefix (List.map
+        (fun fpref ->
+          match fpref with
+          | FTau -> FTau
+          | FOut _ | FIn _ -> fpref
+          | FInVar s -> Format.printf "I found a variable!@.";
+            if SMap.mem s vars then
+              FIn (s ^ "_" ^ (string_of_int @@ int_of_value @@ (SMap.find s vars)))
+            else fpref
+          | FOutVar s -> if SMap.mem s vars then
+              FIn (s ^ "_" ^ (string_of_int @@ int_of_value @@ (SMap.find s vars)))
+            else fpref)
+        l)
+  in
+  rename_modal m
+
+
 let formula_of_preformula pf =
-  let rec step = function
+  let open Syntax in
+  let compute_param p =
+    match p with
+    | PParamVar (n, t) ->
+      n, value_list (SMap.find t !env_type)
+    | _ -> failwith
+      (Format.sprintf "Unusable param for mu-calculus:%s@." @@ string_of_preparam p)
+  in
+
+  let rec test_expr vars = function
+    | PTrue -> Bool true
+    | PFalse -> Bool false
+    | PInt i -> Int i
+    | PName str -> Name str
+    | PConst name -> Int (SMap.find name !env_const)
+    | PVar name -> (SMap.find name vars)
+    | PNot pexpr -> let b = bool_of_value (test_expr vars pexpr) in Bool (not b)
+    | PAnd (preexpr1, preexpr2) ->
+      let b1 = bool_of_value (test_expr vars preexpr1)
+      and b2 = bool_of_value (test_expr vars preexpr2) in
+      Bool ( b1 && b2 )
+    | POr (preexpr1, preexpr2) ->
+      let b1 = bool_of_value (test_expr vars preexpr1)
+      and b2 = bool_of_value (test_expr vars preexpr2) in
+      Bool ( b1 || b2 )
+
+    | PAdd (preexpr1, preexpr2) ->
+      let i1 = int_of_value (test_expr vars preexpr1 )
+      and i2 = int_of_value ( test_expr vars preexpr2 ) in
+      Int ( i1 + i2 )
+
+    | PSub (preexpr1, preexpr2) ->
+      let i1 = int_of_value (test_expr vars preexpr1 )
+      and i2 = int_of_value ( test_expr vars preexpr2 ) in
+      Int ( i1 - i2 )
+
+    | PMul (preexpr1, preexpr2) ->
+      let i1 = int_of_value (test_expr vars preexpr1 )
+      and i2 = int_of_value ( test_expr vars preexpr2 ) in
+      Int ( i1 * i2 )
+
+    | PDiv (preexpr1, preexpr2) ->
+      let i1 = int_of_value (test_expr vars preexpr1 )
+      and i2 = int_of_value ( test_expr vars preexpr2 ) in
+      Int ( i1 / i2 )
+
+    | PMod (preexpr1, preexpr2) ->
+      let i1 = int_of_value (test_expr vars preexpr1 )
+      and i2 = int_of_value ( test_expr vars preexpr2 ) in
+      Int ( i1 mod i2 )
+
+    | PInf (preexpr1, preexpr2) ->
+      let i1 = int_of_value (test_expr vars preexpr1 )
+      and i2 = int_of_value ( test_expr vars preexpr2 ) in
+      Bool ( i1 < i2 )
+
+    | PSup (preexpr1, preexpr2) ->
+      let i1 = int_of_value (test_expr vars preexpr1 )
+      and i2 = int_of_value ( test_expr vars preexpr2 ) in
+      Bool ( i1 > i2 )
+
+    | PEq (preexpr1, preexpr2) ->
+      let p1 = test_expr vars preexpr1
+      and p2 = test_expr vars preexpr2 in
+      (match (p1, p2) with
+      | (Bool b1, Bool b2) -> Bool ( b1 = b2 )
+      | (Int i1, Int i2) -> Bool ( i1 = i2 )
+      | (Name n1, Name n2) -> Bool ( n1 = n2 )
+      | (_, _) -> Bool ( false ))
+
+    | PNeq (preexpr1, preexpr2) ->
+      let p1 = test_expr vars preexpr1
+      and p2 = test_expr vars preexpr2 in
+      (match (p1, p2) with
+      | (Bool b1, Bool b2) -> Bool ( b1 <> b2 )
+      | (Int i1, Int i2) -> Bool ( i1 <> i2 )
+      | (Name n1, Name n2) -> Bool ( n1 <> n2 )
+      | (_, _) -> Bool ( true ))
+
+    | PInfEq (preexpr1, preexpr2) ->
+      let i1 = int_of_value (test_expr vars preexpr1 )
+      and i2 = int_of_value ( test_expr vars preexpr2 ) in
+      Bool ( i1 <= i2 )
+
+    | PSupEq (preexpr1, preexpr2) ->
+      let i1 = int_of_value (test_expr vars preexpr1 )
+      and i2 = int_of_value ( test_expr vars preexpr2 ) in
+      Bool ( i1 >= i2 )
+
+    | PIf (cond, preexpr1, preexpr2) ->
+      let b = bool_of_value (test_expr vars cond) in
+      if b then
+        test_expr vars preexpr1
+      else
+        test_expr vars preexpr2
+  in
+
+  let res_of_expr e vars =
+    match test_expr vars e with
+    | Bool b -> b
+    | _ -> failwith "The result of the expression wasn't a boolean expression"
+  in
+
+  let rec step vars = function
     | PFTrue -> FTrue
     | PFFalse -> FFalse
-    | PFPar f -> FPar (step f)
-    | PFAnd (f, g) -> FAnd (step f, step g)
-    | PFOr (f, g) -> FOr (step f, step g)
-    | PFImplies (f, g) -> FImplies (step f, step g)
-    | PFModal(m, f) -> FModal (m, step f)
-    | PFInvModal (m, f) -> FInvModal (m, step f)
+    | PFPar f -> FPar (step vars f)
+    | PFAnd (f, g) -> FAnd (step vars f, step vars g)
+    | PFOr (f, g) -> FOr (step vars f, step vars g)
+    | PFImplies (f, g) -> FImplies (step vars f, step vars g)
+    | PFModal(m, f) -> FModal (substitute_modality m vars, step vars f)
+    | PFInvModal (m, f) -> FInvModal (substitute_modality m vars, step vars f)
     | PFVar v -> FVar v
-    | PFMu (x, f) -> FMu (x, step f)
-    | PFNu (x, f) -> FNu (x, step f)
+    | PFMu (x, f) -> FMu (x, step vars f)
+    | PFNu (x, f) -> FNu (x, step vars f)
     | PFProp (s, il) ->
       if Hashtbl.mem props s then
         let (vars, formula) = Hashtbl.find props s in
         substitute formula @@ List.combine vars il
       else
         raise (Unbound_prop s)
-    | PFForall (_, _, f) -> step f
-    | PFExists (_, _, f) -> step f
+    | PFForall (param, expr, f) ->
+      let n, val_list = compute_param param in
+      List.fold_left
+        (fun acc_f i ->
+          let vars = SMap.add n i vars in
+          let b = res_of_expr expr vars in
+          if b then
+            let f = step vars f in
+            if acc_f = FTrue then f
+            else FAnd (f, acc_f)
+          else acc_f)
+        FTrue
+        val_list
+
+    | PFExists (param, expr, f) ->
+      let n, val_list = compute_param param in
+      List.fold_left
+        (fun acc_f i ->
+          let vars = SMap.add n i vars in
+          let b = res_of_expr expr vars in
+          if b then
+            let f = step vars f in
+            if acc_f = FFalse then f
+            else FOr (f, acc_f)
+          else acc_f)
+        FFalse
+        val_list
+
   in
   Format.printf "Preformula received :\n%s@." @@ string_of_preformula pf;
-  let res = step pf in
+  let res = step SMap.empty pf in
   Format.printf "Result :\n%s@." @@ string_of_formula res;
   res
-  (* let rename_modality = assert false (\* function *\) *)
-  (*   (\* | FPossibility pl -> *\) *)
-  (* in *)
-  (* let sub = function *)
-  (*   | FModal (m, f) -> *)
-
-  (*     let rename m = *)
-  (*       match fprefix_of_preprefix m with *)
-  (*       | FInVar n -> PIn (PName (n ^ "_" ^ value)) *)
-  (*       | FOutVar n -> POut (PName (n ^ "_" ^ value)) *)
-  (*       | _ -> m *)
-  (*     in *)
-  (*     FModal (m, sub value f) *)
-  (*   | FInvModal (m, f) -> *)
-  (*     let m = *)
-  (*       match fprefix_of_preprefix m with *)
-  (*       | FInVar n -> PIn (PName (n ^ "_" ^ value)) *)
-  (*       | FOutVar n -> POut (PName (n ^ "_" ^ value)) *)
-  (*       | _ -> m *)
-  (*     in *)
-  (*     FInvModal (m, sub value f) *)
-  (*   | FTrue | FFalse as f -> f *)
-  (*   | FAnd (f, g) -> FAnd (sub value f, sub value g) *)
-  (*   | FOr (f, g) -> FOr (sub value f, sub value g) *)
-  (*   | FImplies (f, g) -> FImplies (sub value f, sub value g) *)
-  (*   | FModal(m, f) -> FModal (m, sub value f) *)
-  (*   | FInvModal (m, f) -> FInvModal (m, sub value f) *)
-  (*   | FVar v -> FVar v *)
-  (*   | FMu (x, f) -> FMu (x, sub value f) *)
-  (*   | FNu (x, f) -> FNu (x, sub value f) *)
-  (* in *)
-  (* let rec step = function *)
-  (*   | FTrue | FFalse as f -> f *)
-  (*   | FAnd (f, g) -> FAnd (step f, step g) *)
-  (*   | FOr (f, g) -> FOr (step f, step g) *)
-  (*   | FImplies (f, g) -> FImplies (step f, step g) *)
-  (*   | FModal(m, f) -> *)
-  (*     let v = *)
-  (*       if SMap.mem const_name !env_const then *)
-  (*         SMap.find var *)
-  (*       else *)
-  (*         raise (Constdef_Exception const_name) *)
-
-  (*     FModal (m, step f) *)
-  (*   | FInvModal (m, f) -> FInvModal (m, step f) *)
-  (*   | FVar v -> FVar v *)
-  (*   | FMu (x, f) -> FMu (x, step f) *)
-  (*   | FNu (x, f) -> FNu (x, step f) *)
-  (*   | FProp (s, il) -> *)
-  (*     if Hashtbl.mem props s then *)
-  (*       let (vars, formula) = Hashtbl.find props s in *)
-  (*       substitute formula @@ List.combine vars il *)
-  (*     else *)
-  (*       raise (Unbound_prop s) *)
-  (* in *)
-  (* Format.printf "Preformula received :\n%s@." @@ string_of_formula pf; *)
-  (* let res = step pf in *)
-  (* Format.printf "Result :\n%s@." @@ string_of_formula res; *)
-  (* res *)
 
 (** Local model checker *)
 
