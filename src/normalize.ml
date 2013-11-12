@@ -195,7 +195,7 @@ let simple_normalize proc =
   let nproc_frees = freeNames (denormalize (SSet.empty, nproc)) in
   let nus = SSet.inter !nus nproc_frees in
     ((nus, nproc), frees)
-;;
+
 
 let complex_normalize ((bounded : SSet.t), nproc) frees =
   let (bnd1, bnd2) =
@@ -268,14 +268,14 @@ let complex_normalize ((bounded : SSet.t), nproc) frees =
           NRename(var,name',rename np)
   in
     (new_bounded, norm (rename nproc))
-;;
+
 
 let normalize proc =
   let (nproc, frees) = simple_normalize proc in
   let nproc' = simplify nproc in
   let nproc'' = complex_normalize nproc' frees in
     nproc''
-;;
+
 
 let renormalize nprocess =
   let (res', nproc') = simplify nprocess in
@@ -283,7 +283,7 @@ let renormalize nprocess =
   let frees = SSet.diff internals res' in
   let res = SSet.inter res' internals in
     complex_normalize (res, nproc') frees
-;;
+
 
 (***)
 

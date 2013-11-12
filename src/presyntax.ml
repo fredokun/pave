@@ -1,12 +1,10 @@
 
 open Printf
-
 open Utils
-
 open Syntax
 
-let env_const = ref SMap.empty ;;
-let env_var = ref SMap.empty ;;
+let env_const = ref SMap.empty 
+let env_var = ref SMap.empty 
 
 
 type preconstdef =
@@ -24,11 +22,11 @@ type pretypedef =
 
 let env_type = 
   let bool_type = PTDefEnum( "Bool", (SSet.add "True" (SSet.add "False" SSet.empty)))
-  in ref (SMap.add "Bool" bool_type SMap.empty) ;;
+  in ref (SMap.add "Bool" bool_type SMap.empty) 
 
 let add_to_env_type k v =
    env_type := SMap.add k v !env_type
-;;
+
 
 
 let string_of_pretypedef = function
@@ -161,7 +159,7 @@ let rec interprete_preexpr : preexpr -> value = function
       interprete_preexpr preexpr1
     else
       interprete_preexpr preexpr2
-;;
+
 
 let rec string_of_preexpr = function
   | PTrue -> "true"
@@ -194,7 +192,7 @@ type preprefix =
   | PSend of preexpr * preexpr
 
 let string_of_preprefix = function
-  | PTau -> "tau"
+  | PTau -> Utils.tau_str
   | PIn n -> sprintf "%s?" (string_of_preexpr n)
   | POut n -> sprintf "%s!" (string_of_preexpr n)
   | PReceive (c,x,t) -> sprintf "%s?(%s:%s)" (string_of_preexpr c) x t
@@ -221,7 +219,7 @@ let rec string_of_preprocess = function
   | PGuard(g,p) -> sprintf "when (%s) %s" (string_of_preexpr g) (string_of_preprocess p)
 
 
-exception Vardef_Exception of string ;;
+exception Vardef_Exception of string
 
 let make_int_list min max =
   let rec make_aux m =

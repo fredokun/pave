@@ -197,7 +197,7 @@ let derivatives defs ((orig_res, orig_np) as orig_nproc) =
   in
   let derivs = f orig_res orig_np in
     restrict orig_res derivs
-;;
+
 
 let lts deriv_f defs p =
   let rec f acc_trans procs_todo procs_done =
@@ -217,7 +217,7 @@ let lts deriv_f defs p =
   in
   let transs = f TSet.empty (PSet.singleton p) PSet.empty in
   TSet.fold (fun t acc -> t :: acc) transs []
-;;
+
 
 let construct_bisimilarity defs nproc1 nproc2 =
   let rec construct bsm np1 np2 =
@@ -246,12 +246,12 @@ let construct_bisimilarity defs nproc1 nproc2 =
   in
     try construct (BSet.singleton (nproc1, nproc2)) nproc1 nproc2
     with Failure "Bad path" -> failwith "Not bisimilar"
-;;
+
 
 let is_bisimilar defs nproc1 nproc2 =
   try ignore (construct_bisimilarity defs nproc1 nproc2) ; true
   with Failure "Not bisimilar" -> false
-;;
+
 
 
 (******************************************************************************************)
@@ -455,12 +455,12 @@ let construct_weak_bisimilarity defs nproc1 nproc2 =
   in
   try construct (BSet.singleton (nproc1, nproc2)) nproc1 nproc2
   with Failure "Bad path" -> failwith "Not bisimilar"
-;;
+
 
 let is_weakly_bisimilar defs nproc1 nproc2 =
   try ignore (construct_weak_bisimilarity defs nproc1 nproc2) ; true
   with Failure "Not bisimilar" -> false
-;;
+
 
 
 (* a small hack to go from strong transitions to weak ones

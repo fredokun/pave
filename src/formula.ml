@@ -70,9 +70,8 @@ let rec string_of_formula : formula -> string = function
   | FNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
   
 
-let formula_of_preformula : formula -> formula =
-  failwith "TODO" 
+let formula_of_preformula formula = formula
+  
 
-type process = int
 
-let check : formula -> process -> bool = fun _ _ -> false
+

@@ -106,7 +106,7 @@
   /* grammar */
 %%
     script:
-  | EOF { false }
+  | EOF { raise End_of_file }
   | statement SEMICOL { true }
   | statement error { raise (Fatal_Parse_Error "missing ';' after statement") }
 
