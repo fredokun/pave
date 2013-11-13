@@ -66,12 +66,8 @@ let rec string_of_formula : formula -> string = function
   | FInvModal(m,f) ->  "~" ^ (string_of_modality m) ^ (string_of_formula f)
   | FProp(prop,params) -> prop ^ (string_of_collection "(" ")" "," (fun s -> s) params)
   | FVar(var) -> var
-  | FMu(x,f) -> sprintf "Mu(%s).%s" x (string_of_formula f)
-  | FNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
+  | FMu(x,f) -> sprintf "µ%s.%s" x (string_of_formula f)
+  | FNu(x,f) -> sprintf "ν%s.%s" x (string_of_formula f)
   
 
 let formula_of_preformula formula = formula
-  
-
-
-

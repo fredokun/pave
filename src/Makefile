@@ -1,15 +1,15 @@
 TARGS=stests pave my_test
 
-FLAGS=-w -Ae -annot
+FLAGS=-w Ae
 DEBUG=-annot
 
 all: $(TARGS)
 
 %.cmo:%.ml
-	ocamlc $(DEBUG) $(FLAGS) -c $< -o $@
+	ocamlc $(DEBUG) $(FLAGS) -c $< 
 
 %.cmi:%.mli
-	ocamlc $(DEBUG) $(FLAGS) -c $< -o $@
+	ocamlc $(DEBUG) $(FLAGS) -c $< 
 
 %.ml: %.mll
 	ocamllex $<

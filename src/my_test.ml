@@ -27,9 +27,11 @@ let f4 =
 let f5 =
   FModal (FPossibly [POut (PName "b")], FTrue)
 
-let f_nu = FNu("X", FModal(FPossibly [(POut (PName "a"))], FVar "X"))
-(* pas sûr de la formule *)
-let p_nu = Res("A", (Prefix (Out "a", Call ("A", []))))
+(* νX.([b!]False and [b!]X) *)
+let f_nu = FNu("X", FAnd ((FModal (FNecessity [(POut (PName "b"))], FFalse)), 
+			 (FModal (FAnyNecessity, FVar "X"))))
+
+let p_nu = Prefix (Out "a", (Prefix (Out "a", Silent)))
 
 let tests = 
   [ (f1, p1)
@@ -46,8 +48,8 @@ let () =
     (fun (form, proc) ->
       Printf.printf "----------------\nTest %d\n" !cpt;
       Printf.printf "%s satisfait-il %s\n%!"
-	(string_of_formula form)
-	(string_of_process proc);
+	(string_of_process proc)
+	(string_of_formula form);
       Printf.printf "=> %b\n%!"
 	(check_formula form proc);
       incr cpt) 
