@@ -2,6 +2,10 @@
 
 type t = {id: int; l: t; r: t; value: int}
 
+
+(* type tree = One | Zero | Tree of tree * tree * int *)
+(* and t = int * tree *)
+
 let rec null = {id = -1; l = null; r = null; value = -1}
 
 let one = {id = 0; l = null; r = null; value = -1}

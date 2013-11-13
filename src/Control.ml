@@ -316,6 +316,6 @@ let handle_prop =
   Formula.add_prop
 
 let handle_check_local =
-  Formula.handle_check_local
+  Check.handle_check_local
 
 let handle_check_global _ _ = failwith "TODO: handle_check_global"
