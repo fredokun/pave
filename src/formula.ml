@@ -7,54 +7,46 @@ open Utils
 
 (* mu-calculus formulae *)
 
-type modality =
-  | FPossibly of preprefix list
-  | FOutPossibly
-  | FInPossibly
-  | FAnyPossibly
-  | FWPossibly of preprefix list
-  | FWOutPossibly
-  | FWInPossibly
-  | FWAnyPossibly
-  | FNecessity of preprefix list
-  | FOutNecessity
-  | FInNecessity
-  | FAnyNecessity
-  | FWNecessity of preprefix list
-  | FWOutNecessity
-  | FWInNecessity
-  | FWAnyNecessity
+type action = Any_in | Any_out | Any | Coll of preprefix list
 
-let string_of_modality : modality -> string = function
-  | FPossibly(acts) -> string_of_collection "<" ">" ","  string_of_preprefix acts
-  | FOutPossibly -> "<!>"
-  | FInPossibly -> "<?>"
-  | FAnyPossibly -> "<.>"
-  | FWPossibly(acts) -> string_of_collection "<<" ">>" ","  string_of_preprefix acts
-  | FWOutPossibly -> "<<!>>"
-  | FWInPossibly -> "<<?>>"
-  | FWAnyPossibly -> "<<.>>"
-  | FNecessity(acts) -> string_of_collection "[" "]" ","  string_of_preprefix acts
-  | FOutNecessity -> "[!]"
-  | FInNecessity -> "[?]"
-  | FAnyNecessity -> "[.]"
-  | FWNecessity(acts) -> string_of_collection "[[" "]]" ","  string_of_preprefix acts
-  | FWOutNecessity -> "[[!]]"
-  | FWInNecessity -> "[[?]]"
-  | FWAnyNecessity -> "[[.]]"
+type strength = Weak | Strong
+
+type modality = Possibly of strength * action | Necessity of strength * action
+
+let (>>) h f = f h
+
+let rec string_of_action = function
+  | Any_in -> "?" 
+  | Any_out -> "!" 
+  | Any -> "."
+  | Coll pres -> List.map string_of_preprefix pres >> String.concat ","
+
+let string_of_modality m =
+  let l,r = match m with Possibly _ -> "<",">" | Necessity _ -> "[","]" in
+  match m with
+    | Possibly (s,a)
+    | Necessity (s,a) -> 
+      let act_str = string_of_action a in
+      match s with
+	| Weak -> sprintf "%s%s%s" (l^l) act_str (r^r)
+	| Strong -> sprintf "%s%s%s" l act_str r
+
+module FixEnv = Set.Make(struct type t = Syntax.process let compare = compare end)
 
 type formula = 
   | FTrue
   | FFalse
   | FAnd of formula * formula
   | FOr of formula * formula
+  | FNot of formula
   | FImplies of formula * formula
   | FModal of modality * formula
   | FInvModal of modality * formula
   | FProp of string * (string list)
   | FVar of string
-  | FMu of string * formula
-  | FNu of string * formula
+  (* +env for local model checking algorithm *)
+  | FMu of string * FixEnv.t * formula
+  | FNu of string * FixEnv.t * formula
  
 let rec string_of_formula : formula -> string = function
   | FTrue -> "True"
@@ -62,12 +54,13 @@ let rec string_of_formula : formula -> string = function
   | FAnd(f,g) -> sprintf "(%s and %s)" (string_of_formula f) (string_of_formula g)
   | FOr(f,g) -> sprintf "(%s or %s)" (string_of_formula f) (string_of_formula g)
   | FImplies(f,g) -> sprintf "(%s ==> %s)" (string_of_formula f) (string_of_formula g)
+  | FNot f -> sprintf "¬%s" (string_of_formula f)
   | FModal(m,f) -> (string_of_modality m) ^ (string_of_formula f)
   | FInvModal(m,f) ->  "~" ^ (string_of_modality m) ^ (string_of_formula f)
   | FProp(prop,params) -> prop ^ (string_of_collection "(" ")" "," (fun s -> s) params)
   | FVar(var) -> var
-  | FMu(x,f) -> sprintf "µ%s.%s" x (string_of_formula f)
-  | FNu(x,f) -> sprintf "ν%s.%s" x (string_of_formula f)
+  | FMu(x,_,f) -> sprintf "µ%s.%s" x (string_of_formula f)
+  | FNu(x,_,f) -> sprintf "ν%s.%s" x (string_of_formula f)
   
 
 let formula_of_preformula formula = formula

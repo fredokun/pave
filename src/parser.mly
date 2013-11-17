@@ -365,32 +365,32 @@
   | formula IMPLIES formula { FImplies ($1,$3) }
   | modality formula { FModal($1,$2) }
   | TILD modality formula { FInvModal($2,$3) }
-  | MU LPAREN IDENT RPAREN DOT formula { FMu ($3,$6) }
-  | NU LPAREN IDENT RPAREN DOT formula { FNu ($3,$6) }
+  | MU LPAREN IDENT RPAREN DOT formula { FMu ($3,FixEnv.empty,$6) }
+  | NU LPAREN IDENT RPAREN DOT formula { FNu ($3,FixEnv.empty,$6) }
   | IDENT LPAREN list_of_names RPAREN { FProp($1,$3) }
   | IDENT { FVar($1) }
 
+
       modality:
-  | INF list_of_prefixes SUP { FPossibly $2 }
-  | INF OUT SUP { FOutPossibly }
-  | INF IN SUP { FInPossibly }
-  | INF DOT SUP { FAnyPossibly }
+  | INF list_of_prefixes SUP { Possibly (Strong, Coll $2) }
+  | INF OUT SUP { Possibly (Strong, Any_out) }
+  | INF IN SUP { Possibly (Strong, Any_in) }
+  | INF DOT SUP { Possibly (Strong, Any) }    
 
-  | INF INF list_of_prefixes SUP SUP { FWPossibly $3 }
-  | INF INF OUT SUP SUP { FWOutPossibly }
-  | INF INF IN SUP SUP { FWInPossibly }
-  | INF INF DOT SUP SUP { FWAnyPossibly }
+  | INF INF list_of_prefixes SUP SUP { Possibly (Weak, Coll $3) }
+  | INF INF OUT SUP SUP { Possibly (Weak, Any_out) }
+  | INF INF IN SUP SUP  { Possibly (Weak, Any_in) }  
+  | INF INF DOT SUP SUP { Possibly (Weak, Any) }    
 
-  | LBRACKET list_of_prefixes RBRACKET { FNecessity $2 }
-  | LBRACKET OUT RBRACKET { FOutNecessity }
-  | LBRACKET IN RBRACKET { FInNecessity }
-  | LBRACKET DOT RBRACKET { FAnyNecessity }
+  | LBRACKET list_of_prefixes RBRACKET { Necessity (Strong, Coll $2) }
+  | LBRACKET OUT RBRACKET { Necessity (Strong, Any_out) }
+  | LBRACKET IN RBRACKET  { Necessity (Strong, Any_in) }  
+  | LBRACKET DOT RBRACKET { Necessity (Strong, Any) }    
 
-  | LBRACKET LBRACKET list_of_prefixes RBRACKET RBRACKET { FWNecessity $3 }
-  | LBRACKET LBRACKET OUT RBRACKET RBRACKET { FWOutNecessity }
-  | LBRACKET LBRACKET IN RBRACKET RBRACKET { FWInNecessity }
-  | LBRACKET LBRACKET DOT RBRACKET RBRACKET { FWAnyNecessity }
-
+  | LBRACKET LBRACKET list_of_prefixes RBRACKET RBRACKET { Necessity (Weak, Coll $3) }
+  | LBRACKET LBRACKET OUT RBRACKET RBRACKET { Necessity (Weak, Any_out) }
+  | LBRACKET LBRACKET IN RBRACKET RBRACKET  { Necessity (Weak, Any_in) }
+  | LBRACKET LBRACKET DOT RBRACKET RBRACKET { Necessity (Weak, Any) }   
 
 %%
 (* end of grammar *)
