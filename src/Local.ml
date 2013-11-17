@@ -16,6 +16,7 @@ let print_error = function
     Printf.printf "unmatching length on proposition %s\n" s
 
 let transitions_of def_map nproc = Semop.derivatives def_map nproc
+let weak_transitions_of def_map nproc = Semop.weak_derivatives def_map nproc
 
 
 let check_label_prefixes lbl pref =

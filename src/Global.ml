@@ -12,6 +12,9 @@ let print_error = function
 
 
 
+(* let rec emerson_lei formula  *)
+
+
 let rec obdd_of_modality env modality =
     match modality with
     (* | Strong, Possibly, Rany _ *)
