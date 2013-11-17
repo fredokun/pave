@@ -76,7 +76,7 @@
 
 /* punctuation */
 %token LPAREN RPAREN LBRACKET RBRACKET COMMA EQUAL EQEQ TILD COLON
-%token IF THEN ELSE INF SUP INFEQ SUPEQ DIFF DOTDOT LACCOL RACCOL INDEF
+%token IF THEN ELSE INF SUP INFEQ SUPEQ DIFF DOTDOT LACCOL RACCOL WHEREAS
 
 /* operators */
 %token PAR PLUS DOT OUT IN MINUS DIV MULT MOD AND OR NOT IMPLIES
@@ -90,7 +90,7 @@
 %left MULT , DIV , MOD
 %right COMMA
 %left OUT IN
-%left INDEF
+%right WHEREAS
 
 %nonassoc UNARY
 
@@ -379,8 +379,8 @@
   | IDENT LPAREN RPAREN { PFProp($1, []) }
   | IDENT LPAREN list_of_names RPAREN { PFProp($1,$3) }
   | IDENT { PFVar($1) }
-  | FORALL param COMMA expr INDEF formula { PFForall($2, $4, $6) }
-  | EXISTS param COMMA expr INDEF formula { PFExists($2, $4, $6) }
+  | FORALL param COMMA expr WHEREAS formula { PFForall($2, $4, $6) }
+  | EXISTS param COMMA expr WHEREAS formula { PFExists($2, $4, $6) }
 
       modality:
   | INF list_of_prefixes SUP

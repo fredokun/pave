@@ -1,0 +1,12 @@
+def send = a?, send2;
+def send2 = b!,(d?, send + c?, send2);
+def med = b?, (c!, med + e!, med);
+def rec = e?,f?,d!, rec;
+def prot = new(b,c,d,e)[send || med || rec];
+prop inv(A) = Nu(X).(A and [.]X);
+prop ev(B) = Mu(Y).(Y or ((<.>true) and [.]Y));
+prop tmp1() = <a?>true;
+prop tmp2() = [f?] ev(tmp1);
+prop p2() = inv(tmp2);
+
+checklocal p2() |- prot;

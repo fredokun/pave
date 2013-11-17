@@ -24,6 +24,8 @@ module S = struct
 
 end
 
+module HashedBdd = S
+
 module HBdd = Hashtbl.Make(S)
 
 let create =

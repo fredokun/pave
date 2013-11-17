@@ -27,8 +27,6 @@ let r_if = "if"
 let r_then = "then"
 let r_else = "else"
 
-let r_in = "in"
-
 let r_const = "const"
 let r_type = "type"
 
@@ -65,6 +63,7 @@ let tild = "~"
 let semicol = ";"
 let ws = (['\t' ' ']*)
 let colon = ':'
+let whereas = "|"
 
 let implies_1 = "==>"
 let implies_2 = "=>"
@@ -136,7 +135,6 @@ let nu_3 = "NU"
     | r_if { IF }
     | r_then { THEN }
     | r_else { ELSE }
-    | r_in { INDEF }
     | r_const { CONSTDEF }
     | r_type { TYPEDEF }
     | dotdot { DOTDOT }
@@ -175,6 +173,7 @@ let nu_3 = "NU"
     | cmd_free { FREE }
     | cmd_bound { BOUND }
     | cmd_names { NAMES }
+    | whereas { WHEREAS }
 
     | implies_1 { IMPLIES }
     | implies_2 { IMPLIES }

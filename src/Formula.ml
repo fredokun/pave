@@ -7,8 +7,8 @@ open Utils
 
 type fprefix =
 | FIn of string
-| FInVar of string
-| FOut of string
+| FInVar of string * string
+| FOut of string * string
 | FOutVar of string
 | FTau
 
@@ -152,6 +152,42 @@ let add_prop name idents formula =
       Hashtbl.add props name (idents, formula)
     end
 
+module IMap = Map.Make(
+  struct
+    type t = int
+    let compare = compare
+ end)
+
+
+let alpha_convert f =
+  let i = ref 0 in
+  let rec step f env =
+    match f with
+    | FVar v ->
+      if SMap.mem v env then FVar (SMap.find v env)
+      else FVar v
+
+    | FTrue | FFalse as f -> f
+    | FPar f -> FPar (step f env)
+    | FNot f -> FNot (step f env)
+    | FAnd (f, g) -> FAnd (step f env, step g env)
+    | FOr (f, g) -> FOr (step f env, step g env)
+    | FImplies (f, g) -> FImplies (step f env, step g env)
+    | FModal(m, f) -> FModal (m, step f env)
+    | FInvModal (m, f) -> FInvModal (m, step f env)
+    | FMu (x, s, f) ->
+      let nx = x ^ "_" ^ (string_of_int !i) in
+      let env = SMap.add x nx env in
+      incr i;
+      FMu (nx, s, step f env)
+    | FNu (x, s, f) ->
+      let nx = x ^ "_" ^ (string_of_int !i) in
+      let env = SMap.add x nx env in
+      incr i;
+      FNu (x, s, step f env)
+    | FProp (_,_) -> f
+  in
+  step f SMap.empty
 
 let reduce f var value =
   let rec step = function

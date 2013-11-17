@@ -300,20 +300,9 @@ let handle_tderiv p = common_deriv (weak_derivatives true) printPfixMap "tderiv"
 
 (*** Mu-Calculus part *)
 
-let handle_prop =
-  (* let namelist = *)
-  (*   if List.length il <> 0 then *)
-  (*     let il = List.rev il in *)
-  (*     "(" ^ (List.fold_left *)
-  (*              (fun n acc -> acc ^ ", " ^ n) *)
-  (*              (List.hd il) *)
-  (*              (List.tl il)) *)
-  (*     ^ ")" *)
-  (*   else "()" *)
-  (* in *)
-  (* Formula.string_of_formula f |> *)
-  (*     Format.printf "Prop : %s %s : %s@." n namelist; *)
-  Formula.add_prop
+let handle_prop name idents formula =
+  Formula.add_prop name idents formula(* ; *)
+  (* ignore (Check.bdd_of_formula formula name) *)
 
 let handle_check_local =
   Check.handle_check_local
