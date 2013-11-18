@@ -13,6 +13,8 @@ type strength = Weak | Strong
 
 type modality = Possibly of strength * action | Necessity of strength * action
 
+module FixSet = Set.Make(struct type t = Syntax.process let compare = compare end)
+
 let (>>) h f = f h
 
 let rec string_of_action = function
@@ -31,8 +33,6 @@ let string_of_modality m =
 	| Weak -> sprintf "%s%s%s" (l^l) act_str (r^r)
 	| Strong -> sprintf "%s%s%s" l act_str r
 
-module FixEnv = Set.Make(struct type t = Syntax.process let compare = compare end)
-
 type formula = 
   | FTrue
   | FFalse
@@ -42,11 +42,11 @@ type formula =
   | FImplies of formula * formula
   | FModal of modality * formula
   | FInvModal of modality * formula
-  | FProp of string * (string list)
+  | FProp of string * formula list
   | FVar of string
   (* +env for local model checking algorithm *)
-  | FMu of string * FixEnv.t * formula
-  | FNu of string * FixEnv.t * formula
+  | FMu of string * FixSet.t * formula
+  | FNu of string * FixSet.t * formula
  
 let rec string_of_formula : formula -> string = function
   | FTrue -> "True"
@@ -57,7 +57,8 @@ let rec string_of_formula : formula -> string = function
   | FNot f -> sprintf "¬%s" (string_of_formula f)
   | FModal(m,f) -> (string_of_modality m) ^ (string_of_formula f)
   | FInvModal(m,f) ->  "~" ^ (string_of_modality m) ^ (string_of_formula f)
-  | FProp(prop,params) -> prop ^ (string_of_collection "(" ")" "," (fun s -> s) params)
+  | FProp(prop,params) -> prop ^ (string_of_collection "(" ")" "," (fun s -> s) 
+				    (List.map string_of_formula params))
   | FVar(var) -> var
   | FMu(x,_,f) -> sprintf "µ%s.%s" x (string_of_formula f)
   | FNu(x,_,f) -> sprintf "ν%s.%s" x (string_of_formula f)

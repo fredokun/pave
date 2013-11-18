@@ -20,10 +20,10 @@ all: $(TARGS)
 stests: utils.cmo syntax.cmo normalize.cmo norm_tests.cmo stests.cmo
 	ocamlc -o $@ $^
 
-pave: utils.cmo syntax.cmo presyntax.cmo normalize.cmo semop.cmo minim.cmo control.cmo formula.cmo parser.cmo lexer.cmo pave.cmo
+pave: utils.cmo syntax.cmo presyntax.cmo normalize.cmo semop.cmo minim.cmo formula.cmo local_checker.ml control.cmo parser.cmo lexer.cmo pave.cmo
 	ocamlc -o $@ $^ -linkall
 
-my_test: utils.cmo syntax.cmo presyntax.cmo normalize.cmo semop.cmo minim.cmo control.cmo formula.cmo parser.cmo lexer.cmo local_checker.cmo my_test.cmo
+my_test: utils.cmo syntax.cmo presyntax.cmo normalize.cmo semop.cmo minim.cmo  formula.cmo lexer.cmo local_checker.cmo control.cmo parser.cmo  my_test.cmo
 	ocamlc -o $@ $^
 
 clean:
@@ -39,7 +39,7 @@ parser.ml: formula.cmo parser.mly
 lexer.ml: lexer.mll
 
 control.cmo : utils.cmo syntax.cmo semop.cmo presyntax.cmo normalize.cmo \
-    minim.cmo
+    minim.cmo local_checker.cmo
 formula.cmo : utils.cmo presyntax.cmo
 lexer.cmo : parser.cmi
 local_checker.cmo : syntax.cmo presyntax.cmo formula.cmo

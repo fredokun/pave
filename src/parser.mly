@@ -254,6 +254,13 @@
   | PROP IDENT LPAREN list_of_names RPAREN EQUAL formula
       { Control.handle_prop $2 $4 (formula_of_preformula $7) }
 
+  | PROP IDENT LPAREN RPAREN EQUAL formula
+      { Control.handle_prop $2 [] (formula_of_preformula $6) }
+  | PROP IDENT EQUAL formula
+      { Control.handle_prop $2 [] (formula_of_preformula $4) }
+
+
+
   | CHECK_LOCAL formula SATISFY process
       { Control.handle_check_local (formula_of_preformula $2) (process_of_preprocess $4) }
 
@@ -365,10 +372,14 @@
   | formula IMPLIES formula { FImplies ($1,$3) }
   | modality formula { FModal($1,$2) }
   | TILD modality formula { FInvModal($2,$3) }
-  | MU LPAREN IDENT RPAREN DOT formula { FMu ($3,FixEnv.empty,$6) }
-  | NU LPAREN IDENT RPAREN DOT formula { FNu ($3,FixEnv.empty,$6) }
-  | IDENT LPAREN list_of_names RPAREN { FProp($1,$3) }
+  | MU LPAREN IDENT RPAREN DOT formula { FMu ($3,FixSet.empty,$6) }
+  | NU LPAREN IDENT RPAREN DOT formula { FNu ($3,FixSet.empty,$6) }
+  | IDENT LPAREN list_of_formula RPAREN { FProp($1,$3) }
   | IDENT { FVar($1) }
+
+      list_of_formula:
+  | formula { [$1] }
+  | formula COMMA list_of_formula { $1::$3 }
 
 
       modality:

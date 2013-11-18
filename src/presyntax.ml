@@ -275,7 +275,7 @@ and process_of_prefix : preprefix -> preprocess -> process =
        prc)
 and process_of_preprocess : preprocess -> process = 
   fun preproc -> 
-    printf "Transforming process:\n%s\n%!" (string_of_preprocess preproc) ;
+    (* printf "Transforming process:\n%s\n%!" (string_of_preprocess preproc) ; *)
     match preproc with
     | PSilent -> Silent
     | PPrefix (pfix, pproc) -> process_of_prefix pfix pproc
@@ -350,4 +350,3 @@ let definitions_of_predefinition : predefinition -> definition list =
     printf "Transforming definition:\n%s\n%!" (string_of_predefinition predef) ;
     def_of_predef_aux name [] preparams preproc
 
-    

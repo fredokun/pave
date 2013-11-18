@@ -300,14 +300,14 @@ let handle_wderiv p = common_deriv (weak_derivatives false) printPfixMap "wderiv
 let handle_tderiv p = common_deriv (weak_derivatives true) printPfixMap "tderiv" "tau derivatives" p
 
 
+let prop_env : (string, (string list * Formula.formula)) Hashtbl.t = Hashtbl.create 32
 
-let handle_prop _ _ _ = failwith "TODO"
+let handle_prop id params formula = 
+  Hashtbl.add prop_env id (params, formula);
+  printf "Proposition %s registered\n%!" id  
 
-let handle_check_local _ _ = failwith "TODO"
+let handle_check_local f p = 
+  let b = Local_checker.check_formula global_definition_map prop_env p f in
+  printf "%b property\n%!" b
 
 let handle_check_global _ _ = failwith "TODO"
-
-
-
-
-

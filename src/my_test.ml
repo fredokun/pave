@@ -28,7 +28,7 @@ let f5 =
   FModal (Possibly (Strong, Coll [POut (PName "b")]), FTrue)
 
 (* νX.([b!]False and [b!]X) *)
-let f_nu = FNu ("X", FixEnv.empty, FAnd ((FModal (Necessity (Strong, Coll [(POut (PName "b"))]), FFalse)), 
+let f_nu = FNu ("X", FixSet.empty, FAnd ((FModal (Necessity (Strong, Coll [(POut (PName "b"))]), FFalse)), 
 					(FModal (Necessity (Strong, Any), FVar "X"))))
 
 let p_nu = Prefix (Out "a", (Prefix (Out "a", Silent)))
@@ -72,6 +72,6 @@ let () =
 	(string_of_process proc)
 	(string_of_formula form);
       Printf.printf "=> %b\n%!"
-	(check_formula form proc);
+	(check_formula (Hashtbl.create 0) (Hashtbl.create 0) proc form);
       incr cpt) 
     tests
