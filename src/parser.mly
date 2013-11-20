@@ -367,13 +367,14 @@
       formula:
   | TRUE { FTrue }
   | FALSE { FFalse }
+  | LPAREN formula RPAREN { $2 }
   | formula AND formula { FAnd ($1,$3) }
   | formula OR formula { FOr ($1,$3) }
   | formula IMPLIES formula { FImplies ($1,$3) }
   | modality formula { FModal($1,$2) }
   | TILD modality formula { FInvModal($2,$3) }
-  | MU LPAREN IDENT RPAREN DOT formula { FMu ($3,FixSet.empty,$6) }
-  | NU LPAREN IDENT RPAREN DOT formula { FNu ($3,FixSet.empty,$6) }
+  | MU LPAREN IDENT RPAREN DOT formula { FMu ($3,Semop.PSet.empty,$6) }
+  | NU LPAREN IDENT RPAREN DOT formula { FNu ($3,Semop.PSet.empty,$6) }
   | IDENT LPAREN list_of_formula RPAREN { FProp($1,$3) }
   | IDENT { FVar($1) }
 

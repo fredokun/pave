@@ -7,17 +7,15 @@ open Utils
 
 (* mu-calculus formulae *)
 
+exception Unsatisfied of string
+
 type action = Any_in | Any_out | Any | Coll of preprefix list
 
 type strength = Weak | Strong
 
 type modality = Possibly of strength * action | Necessity of strength * action
 
-module FixSet = Set.Make(struct type t = Syntax.process let compare = compare end)
-
-let (>>) h f = f h
-
-let rec string_of_action = function
+let string_of_action = function
   | Any_in -> "?" 
   | Any_out -> "!" 
   | Any -> "."
@@ -45,12 +43,12 @@ type formula =
   | FProp of string * formula list
   | FVar of string
   (* +env for local model checking algorithm *)
-  | FMu of string * FixSet.t * formula
-  | FNu of string * FixSet.t * formula
+  | FMu of string * Semop.PSet.t * formula
+  | FNu of string * Semop.PSet.t * formula
  
 let rec string_of_formula : formula -> string = function
-  | FTrue -> "True"
-  | FFalse -> "False"
+  | FTrue -> "true"
+  | FFalse -> "false"
   | FAnd(f,g) -> sprintf "(%s and %s)" (string_of_formula f) (string_of_formula g)
   | FOr(f,g) -> sprintf "(%s or %s)" (string_of_formula f) (string_of_formula g)
   | FImplies(f,g) -> sprintf "(%s ==> %s)" (string_of_formula f) (string_of_formula g)
@@ -62,6 +60,9 @@ let rec string_of_formula : formula -> string = function
   | FVar(var) -> var
   | FMu(x,_,f) -> sprintf "µ%s.%s" x (string_of_formula f)
   | FNu(x,_,f) -> sprintf "ν%s.%s" x (string_of_formula f)
-  
+
+let is_weak_modality = function
+  | (Possibly (Weak, _) | Necessity (Weak, _)) -> true
+  | _ -> false
 
 let formula_of_preformula formula = formula

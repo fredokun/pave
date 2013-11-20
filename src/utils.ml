@@ -4,6 +4,10 @@ open Printf
 
 exception Fatal_Parse_Error of string 
 
+(* utility operators *)
+
+let (>>) h f = f h
+
 (* string sets and maps *)
 
 module SSet = Set.Make(String)
@@ -15,12 +19,7 @@ let tau_str = "\207\132"
 
 let string_of_collection (op:string) (cl:string) (sep:string)
     (tostr: 'a -> string) (lst: 'a list) =
-  let rec str = function
-    | [] -> ""
-    | e::[] -> tostr e
-    | e::es -> (tostr e) ^ sep ^ (str es)
-  in
-    op ^ (str lst) ^ cl
+  op ^ (List.map tostr lst >> String.concat sep)  ^ cl
 
 let string_of_list tostr lst = string_of_collection "[" "]" ";" tostr lst
 
@@ -47,8 +46,6 @@ let checkEq descr e v =
 (* misc. *)
 let ident n = n
 
-let forget _ = ()
-
 (* permutations:: 'a list -> 'a list list *)
 let rec permutations =
   let rec inject_all e n l llen = 
@@ -57,12 +54,13 @@ let rec permutations =
   and inject e n l =
     if n = 0 then e::l
     else (List.hd l)::(inject e (n-1) (List.tl l))
-  in function
+  in 
+  function
     | [] -> []
     | e::[] -> [[e]]
     | e::r ->
-	List.fold_right (fun l ls -> (inject_all e 0 l (List.length l)) @ls)
-	  (permutations r) []
+      List.fold_right (fun l ls -> (inject_all e 0 l (List.length l)) @ls)
+	(permutations r) []
 
 (* take an element of a list, and get the list without the element *)
 
@@ -81,3 +79,4 @@ let list_inject e n l =
 let rec list_replace e n l =
   if n = 0 then e::(List.tl l)
   else (List.hd l)::(list_replace e (n-1) (List.tl l))
+

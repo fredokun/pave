@@ -1,0 +1,63 @@
+def A = a!,B ;
+def B = a!,A ;
+
+prop F = Nu(X).<a!>true and [.]X ;
+
+check F |- A ;
+
+def P1 = a!,0 || a?,0 ;
+
+check <a!>true |- P1 ;
+check <a?>true |- P1 ;
+check <tau>true |- P1 ;
+
+def P2 = a!,0 + a?,0 ;
+
+check <a!>true |- P2 ;
+check <a?>true |- P2 ;
+check [.][.]false |- P2 ; 
+
+def P3 = new(a)[a?,b!,0 || a!,b?,c!,0] ;
+
+check [a?,a!]false |- P3 ;
+check <tau>true |- P3 ;
+check <tau><tau>true |- P3 ;
+check <tau><tau>[.]true |- P3 ;
+
+prop NoDeadLock = Nu(X). <.>true and [.]X ;
+
+check NoDeadLock |- new(a)[ a?,0 || a!,0 ] ;
+check NoDeadLock |- new(a)[ a!,0 || a!,0 ] ;
+check NoDeadLock |- a!,0 ;
+check NoDeadLock |- A ;
+
+def L = a!,b!,c!,0 ;
+check Mu(X).Nu(Y).(<a!><b!><c!>Y or <.>X) |- L ;
+
+prop Until(A,B) = Nu(X). B or (A and [.]X) ;
+
+check Until(<a!>true, <b!>true) |- a!,a!,a!,b!,0 ;
+check Until(<a!>true, <b!>true) |- b!,0 ;
+check Until(<a!>true, <b!>true) |- b!,0 ;
+check Until(<a!>true, <b!>true) |- A ;
+
+check Until(<a!>true, <b!>true) |- c!,a!,b!,0 ;
+check Until(<a!>true, <b!>true) |- a!,a!,c!,b!,0 ;
+
+prop SUntil(A,B) = Mu(X). B or (A and [.]X) ;
+
+check SUntil(<a!>true, <b!>true) |- A ;
+check SUntil(<a!>true, <b!>true) |- b!,0 ;
+check SUntil(<a!>true, <b!>true) |- a!,b!,0 ;
+
+
+check [[c!]]true |- tau,tau,c!,a!,0 ;
+check [[c!]]<a!>true |- tau,tau,c!,a!,0 ;
+check [[c!]]<a!>true |- tau,tau,c!,tau,a!,0 ;
+check [[c!]]<<a!>>true |- tau,tau,c!,tau,a!,0 ;
+
+check <<.>><c!>true |- tau,tau,c!,tau,a!,0 ;
+
+check <<a!>>[a!]false |- tau,a!,tau,b!,0 || tau,a!,tau,c!,0 ;
+
+check <tau>true |- a!,tau,b!,0||a?,tau,c!,0 ;

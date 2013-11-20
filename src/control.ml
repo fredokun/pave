@@ -5,6 +5,7 @@ open Syntax
 open Normalize
 open Semop
 open Minim
+open Formula
 
 let help_me = "\n\
 Command summary:\n\
@@ -304,10 +305,10 @@ let prop_env : (string, (string list * Formula.formula)) Hashtbl.t = Hashtbl.cre
 
 let handle_prop id params formula = 
   Hashtbl.add prop_env id (params, formula);
-  printf "Proposition %s registered\n%!" id  
+  printf "Proposition '%s' registered\n%!" id  
 
 let handle_check_local f p = 
-  let b = Local_checker.check_formula global_definition_map prop_env p f in
-  printf "%b property\n%!" b
+  Local_checker.check_local global_definition_map prop_env f p
+  >> printf "%s |- %s = %b\n%!" (string_of_formula f) (string_of_process p)
 
 let handle_check_global _ _ = failwith "TODO"

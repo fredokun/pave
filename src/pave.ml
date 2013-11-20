@@ -28,7 +28,8 @@ let () =  Arg.parse [
   ; ("-version", Arg.Unit (fun () -> printf "%s\n%!" version_str ; exit 0),
      "print version information")
 ]
-  (fun arg -> eprintf "Invalid argument: %s\n%!" arg ; exit 1)
+  (fun arg -> match !load_file with None -> load_file := Some arg
+    | _ -> eprintf "Invalid argument: %s\n%!" arg ; exit 1)
   usage
 
 let parse_error_msg lexbuf =
