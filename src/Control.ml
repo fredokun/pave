@@ -308,4 +308,4 @@ let handle_prop name idents formula =
 let handle_check_local =
   Check.handle_check_local
 
-let handle_check_global _ _ = failwith "TODO: handle_check_global"
+let handle_check_global = Check.check_global

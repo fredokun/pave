@@ -1,11 +1,32 @@
 
+# Some definitions, as proof of concept
+# prop p1() = true;
+# prop p2(A) = A;
+# prop p3() = <a!>true;
 
-def send = a?, send2;
-def send2 = b!,(d?, send + c?, send2);
-def med = b?, (c!, med + e!, med);
-def rec = e?,f?,d!, rec;
-def prot = new(b,c,d,e)[send || med || rec];
-prop inv(A) = Nu(X).(A and [.]X);
-prop ev(B) = Mu(Y).(Y or ((<.>true) and [.]Y));
+# Check if, after every action, there is no out
+prop noIn() = [.][?]false;
 
-checklocal inv([f?]ev(<a?>true)) |- prot;
+def proc1 = a!, b!, 0;
+
+# Returns OK
+checklocal noIn() |- proc1;
+
+# After the first action, there is a out
+def proc2 = a!, b?, 0;
+
+# Returns false
+checklocal noIn() |- proc2;
+
+prop possibly(A) = Mu(X).A or <.> X;
+prop always(A) = Nu(X). A and [.] X;
+prop eventually(A) = Mu(X). A or ((<.>true) and [.] X);
+
+prop deadlock() = [.] false;
+
+# Will never end
+def Loop = a!, Loop;
+
+checklocal possibly(deadlock()) |- Loop;
+checklocal always(deadlock()) |- Loop;
+checklocal eventually(deadlock()) |- Loop;

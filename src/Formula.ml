@@ -37,16 +37,18 @@ type io =
 
 type modality = strongness * modal * io
 
+let string_of_io = function
+  | In -> "?"
+  | Out -> "!"
+  | Any -> "."
+  | Prefix pl -> List.fold_left
+    (fun acc p -> acc ^ "," ^ (string_of_fprefix p))
+    (string_of_fprefix (List.hd pl))
+    (List.tl pl)
+
+
 let string_of_modality (s, m, io) =
-  let io = match io with
-    | In -> "!"
-    | Out -> "?"
-    | Any -> "."
-    | Prefix pl -> List.fold_left
-      (fun acc p -> acc ^ "," ^ (string_of_fprefix p))
-      (string_of_fprefix (List.hd pl))
-      (List.tl pl)
-  in
+  let io = string_of_io io  in
   match s, m with
     | Strong, Possibly -> Format.sprintf "<%s>" io
     | Strong, Necessity -> Format.sprintf "[%s]" io
