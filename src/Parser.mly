@@ -364,6 +364,10 @@
   | /* empty */ { [] }
   | expr list_of_exprs { $1::$2 }
 
+      list_of_formulas:
+  | formula { [$1] }
+  | formula COMMA list_of_formulas { $1::$3 }
+
       formula:
   | TRUE { PFTrue }
   | FALSE { PFFalse }
@@ -377,7 +381,7 @@
   | MU LPAREN IDENT RPAREN DOT formula { PFMu ($3,$6) }
   | NU LPAREN IDENT RPAREN DOT formula { PFNu ($3,$6) }
   | IDENT LPAREN RPAREN { PFProp($1, []) }
-  | IDENT LPAREN list_of_names RPAREN { PFProp($1,$3) }
+  | IDENT LPAREN list_of_formulas RPAREN { PFProp($1,$3) }
   | IDENT { PFVar($1) }
   | FORALL param COMMA expr WHEREAS formula { PFForall($2, $4, $6) }
   | EXISTS param COMMA expr WHEREAS formula { PFExists($2, $4, $6) }

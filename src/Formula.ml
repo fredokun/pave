@@ -7,8 +7,8 @@ open Utils
 
 type fprefix =
 | FIn of string
-| FInVar of string * string
-| FOut of string * string
+| FInVar of string
+| FOut of string
 | FOutVar of string
 | FTau
 
@@ -66,7 +66,7 @@ type preformula =
   | PFImplies of preformula * preformula
   | PFModal of modality * preformula
   | PFInvModal of modality * preformula
-  | PFProp of string * (string list)
+  | PFProp of string * (preformula list)
   | PFVar of string
   | PFMu of string * preformula
   | PFNu of string * preformula
@@ -82,7 +82,11 @@ let rec string_of_preformula : preformula -> string = function
   | PFImplies(f,g) -> sprintf "(%s ==> %s)" (string_of_preformula f) (string_of_preformula g)
   | PFModal(m,f) -> (string_of_modality m) ^ (string_of_preformula f)
   | PFInvModal(m,f) ->  "~" ^ (string_of_modality m) ^ (string_of_preformula f)
-  | PFProp(prop,params) -> prop ^ (string_of_collection "(" ")" "," (fun s -> s) params)
+  | PFProp(prop,params) -> prop ^
+    (string_of_collection "(" ")" ","
+       (fun s ->
+         string_of_preformula s)
+       params)
   | PFVar(var) -> var
   | PFMu(x,f) -> sprintf "Mu(%s).%s" x (string_of_preformula f)
   | PFNu(x,f) -> sprintf "Nu(%s).%s" x (string_of_preformula f)
@@ -103,7 +107,7 @@ type formula =
   | FImplies of formula * formula
   | FModal of modality * formula
   | FInvModal of modality * formula
-  | FProp of string * (string list)
+  | FProp of string * (formula list)
   | FVar of string
   | FMu of string * PSet.t * formula
   | FNu of string * PSet.t * formula
@@ -118,7 +122,11 @@ let rec string_of_formula : formula -> string = function
   | FImplies(f,g) -> sprintf "(%s ==> %s)" (string_of_formula f) (string_of_formula g)
   | FModal(m,f) -> (string_of_modality m) ^ (string_of_formula f)
   | FInvModal(m,f) ->  "~" ^ (string_of_modality m) ^ (string_of_formula f)
-  | FProp(prop,params) -> prop ^ (string_of_collection "(" ")" "," (fun s -> s) params)
+  | FProp(prop,params) ->
+    prop ^ (string_of_collection "(" ")" ","
+              (fun s ->
+                string_of_formula s)
+              params)
   | FVar(var) -> var
   | FMu(x, _, f) -> sprintf "Mu(%s).%s" x (string_of_formula f)
   | FNu(x, _, f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
@@ -139,7 +147,7 @@ let rec verify_vars f idents =
     verify_vars f idents; verify_vars g idents
   | FModal (_, f) | FInvModal (_, f) -> verify_vars f idents
   | FMu (x,_,f) | FNu (x,_,f) -> verify_vars f (x :: idents)
-  | FProp (_, l) -> List.iter (fun v -> verify_vars (FVar v) idents) l
+  (* | FProp (_, l) -> List.iter (fun v -> verify_vars (FVar v) idents) l *)
   | _ -> ()
 
 (** val add_prop : string -> string list -> formula -> unit *)
@@ -208,14 +216,14 @@ let reduce f var value =
 
 let substitute f sub_list =
   let rec step sl = function
-  | FVar v ->
-    let s = (List.assoc v sl) in
-    if Hashtbl.mem props s then
-      let (vars, formula) = Hashtbl.find props s in
-      if List.length vars = 0 then formula
-      else FProp (s, vars)
-    else
-      FVar v
+  | FVar v -> List.assoc v sl
+    (* let s = (List.assoc v sl) in *)
+    (* if Hashtbl.mem props s then *)
+    (*   let (vars, formula) = Hashtbl.find props s in *)
+    (*   if List.length vars = 0 then formula *)
+    (*   else FProp (s, vars) *)
+    (* else *)
+    (*   FVar v *)
   | FTrue | FFalse as f -> f
   | FPar f -> FPar (step sl f)
   | FAnd (f, g) -> FAnd (step sl f, step sl g)
@@ -223,8 +231,8 @@ let substitute f sub_list =
   | FImplies (f, g) -> FImplies (step sl f, step sl g)
   | FModal(m, f) -> FModal (m, step sl f)
   | FInvModal (m, f) -> FInvModal (m, step sl f)
-  | FMu (x, s, f) -> FMu (x, s, step ((x, x)::sl) f)
-  | FNu (x, s, f) -> FNu (x, s, step ((x, x)::sl) f)
+  | FMu (x, s, f) -> FMu (x, s, step ((x, FVar x)::sl) f)
+  | FNu (x, s, f) -> FNu (x, s, step ((x, FVar x)::sl) f)
   | _ -> assert false (* Technically, no Prop should remain ? *)
   in
   step sub_list f
@@ -242,10 +250,10 @@ let substitute_prop f =
     | FMu (x, s, f) -> FMu (x, s, step f)
     | FNu (x, s, f) -> FNu (x, s, step f)
     | FNot f -> FNot (step f)
-    | FProp (s, il) ->
+    | FProp (s, fl) ->
       if Hashtbl.mem props s then
         let (vars, formula) = Hashtbl.find props s in
-        substitute formula @@ List.combine vars il
+        substitute formula @@ List.combine vars fl
       else
         raise (Unbound_prop s)
   in
@@ -262,12 +270,14 @@ let substitute_modality m vars =
           match fpref with
           | FTau -> FTau
           | FOut _ | FIn _ -> fpref
-          | FInVar s -> Format.printf "I found a variable!@.";
+          | FInVar s ->
             if SMap.mem s vars then
-              FIn (s ^ "_" ^ (string_of_int @@ int_of_value @@ (SMap.find s vars)))
+              let n = String.sub s 1 @@ String.length s - 1 in
+              FIn (n ^ "_" ^ (string_of_int @@ int_of_value @@ (SMap.find s vars)))
             else fpref
           | FOutVar s -> if SMap.mem s vars then
-              FIn (s ^ "_" ^ (string_of_int @@ int_of_value @@ (SMap.find s vars)))
+              let n = String.sub s 1 @@ String.length s - 1 in
+              FOut (n ^ "_" ^ (string_of_int @@ int_of_value @@ (SMap.find s vars)))
             else fpref)
         l)
   in
@@ -279,6 +289,7 @@ let formula_of_preformula pf =
   let compute_param p =
     match p with
     | PParamVar (n, t) ->
+      if not @@ SMap.mem t !env_type then failwith "Not found" else
       n, value_list (SMap.find t !env_type)
     | _ -> failwith
       (Format.sprintf "Unusable param for mu-calculus:%s@." @@ string_of_preparam p)
@@ -290,7 +301,10 @@ let formula_of_preformula pf =
     | PInt i -> Int i
     | PName str -> Name str
     | PConst name -> Int (SMap.find name !env_const)
-    | PVar name -> (SMap.find name vars)
+    | PVar name -> if not @@ SMap.mem name vars then
+        failwith "Var not found"
+      else
+        (SMap.find name vars)
     | PNot pexpr -> let b = bool_of_value (test_expr vars pexpr) in Bool (not b)
     | PAnd (preexpr1, preexpr2) ->
       let b1 = bool_of_value (test_expr vars preexpr1)
@@ -390,10 +404,11 @@ let formula_of_preformula pf =
     | PFVar v -> FVar v
     | PFMu (x, f) -> FMu (x, PSet.empty, step vars f)
     | PFNu (x, f) -> FNu (x, PSet.empty, step vars f)
-    | PFProp (s, il) ->
+    | PFProp (s, pfl) ->
       if Hashtbl.mem props s then
-        let (vars, formula) = Hashtbl.find props s in
-        substitute formula @@ List.combine vars il
+        let (vars', formula) = Hashtbl.find props s in
+        let fl = List.map (step vars) pfl in
+        substitute formula @@ List.combine vars' fl
       else
         raise (Unbound_prop s)
     | PFForall (param, expr, f) ->

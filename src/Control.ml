@@ -301,6 +301,7 @@ let handle_tderiv p = common_deriv (weak_derivatives true) printPfixMap "tderiv"
 (*** Mu-Calculus part *)
 
 let handle_prop name idents formula =
+
   Formula.add_prop name idents formula(* ; *)
   (* ignore (Check.bdd_of_formula formula name) *)
 
