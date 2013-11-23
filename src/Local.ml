@@ -16,7 +16,7 @@ let print_error = function
     Printf.printf "unmatching length on proposition %s\n" s
 
 let transitions_of def_map nproc = Semop.derivatives def_map nproc
-let weak_transitions_of def_map nproc = Semop.weak_derivatives def_map nproc
+let weak_transitions_of def_map nproc = Semop.weak_derivatives true def_map nproc
 
 
 let check_label_prefixes lbl pref =
@@ -26,6 +26,7 @@ let check_label_prefixes lbl pref =
   | (PIn (PName s1), (T_In s2)) when s1 = s2 -> true
   | (POut (PName s1), (T_Out s2)) when s1 = s2 -> true
   | _ -> false
+
 
 
 let rec next_process_set def_map modality transitions =
@@ -38,7 +39,9 @@ let rec next_process_set def_map modality transitions =
       PSet.add destination destination_set
     | (Weak, _, _), T_Tau ->
       PSet.union destination_set @@
-        next_process_set def_map modality (transitions_of def_map destination)
+        (PrefixMap.fold (fun k d a -> PSet.union d a)
+           (weak_transitions_of def_map destination)
+           destination_set)
     | (_, _, Rpref acts), label ->
       if List.exists (check_label_prefixes label) acts then
         PSet.add destination destination_set
