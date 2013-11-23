@@ -19,6 +19,7 @@ let print_error = function
     Printf.printf "unmatching length on proposition %s\n" s
 
 let transitions_of def_map nproc = Semop.derivatives def_map nproc
+let weak_transitions_of def_map nproc = Semop.weak_derivatives def_map nproc
 
 
 let check_label_prefixes lbl pref =
@@ -50,7 +51,7 @@ let rec next_process_set def_map modality transitions =
 
 
 let beta_reduce in_formula expected_var replacement =
-  let rec beta_reduce in_formula = 
+  let rec beta_reduce in_formula =
   match in_formula with
   | FTrue | FFalse -> in_formula
   | FAnd (f1, f2) -> FAnd(beta_reduce f1, beta_reduce f2)
