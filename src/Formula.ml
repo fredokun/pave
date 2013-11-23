@@ -71,7 +71,7 @@ let string_of_proposition (Proposition(_, _, formula) as prop) =
   "prop " ^ (string_of_prop_header prop) ^ " = " ^ (string_of_formula formula)
 
 let rec formula_of_preformula formula =
-  printf "Transforming %s\n" @@ string_of_formula formula;
+  (* printf "Transforming %s\n" @@ string_of_formula formula; *)
   match formula with
   | FTrue -> formula
   | FFalse ->  formula
@@ -82,10 +82,10 @@ let rec formula_of_preformula formula =
   | FModal (m, f) -> FModal (m, formula_of_preformula f)
   | FInvModal (m, f) -> FInvModal (m, formula_of_preformula f)
   | FProp (prop, params) ->
-      printf "%s : Not implemented\n" @@ string_of_formula formula;
+      (* printf "%s : Not implemented\n" @@ string_of_formula formula; *)
       FProp(prop, List.map formula_of_preformula params)
   | FVar _ ->
-      printf "%s : Not implemented\n" @@ string_of_formula formula;
+      (* printf "%s : Not implemented\n" @@ string_of_formula formula; *)
       formula
   | FMu (x, env, f) -> FMu (x, env, formula_of_preformula f)
   | FNu (x, env, f) -> FNu (x, env, formula_of_preformula f)

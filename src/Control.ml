@@ -348,10 +348,20 @@ let handle_prop name params formula =
 
 let handle_check_local formula process =
   let nproc = Normalize.normalize process in
-  let res =
-    Local.check global_definition_map global_proposition_map formula nproc
+  let res, trace =
+    Local.check global_definition_map global_proposition_map 
+                [formula, nproc] formula nproc
   in
-  if res then printf "TRUE PROPERTY\n"
-  else printf "FALSE PROPERTY\n"
+  if res then printf "TRUE PROPERTY\n\n"
+  else begin
+    printf "Trace : \n";
+    List.iter 
+      (fun (formula, process) ->
+        printf "\t%s -| %s\n" 
+          (Normalize.string_of_nprocess process)
+          (Formula.string_of_formula formula))
+      (List.rev trace);
+    printf "FALSE PROPERTY\n\n"
+  end
 
 let handle_check_global formula process = Global.check formula process
