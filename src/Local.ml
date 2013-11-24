@@ -3,12 +3,15 @@
 open Formula
 open Semop
 
-
 type error =
 | Unbound_Proposition of string
 | Unmatching_length of string
 
 exception Error of error
+
+(* Trace, tuple of labels visited and 
+   process remaining to execute *)
+type trace = (formula * Normalize.nprocess) list  
 
 let print_error = function
   | Unbound_Proposition s -> Printf.printf "unbound proposition %s\n" s
@@ -68,50 +71,74 @@ let beta_reduce in_formula expected_var replacement =
   in
   beta_reduce in_formula
 
-
-let rec check def_map prop_map formula nproc =
-  let rec check_internal = function
-    | FTrue -> true
-    | FNot formula -> not @@ check_internal formula
-    | FFalse -> false
-    | FAnd (f1, f2) -> check_internal f1 && check_internal f2
-    | FOr (f1, f2) -> check_internal f1 || check_internal f2
-    | FImplies (f1, f2) -> check_internal f1 |> not || check_internal f2
+let rec check def_map prop_map trace formula nproc  =
+  let rec check_internal trace = function
+    | FTrue -> (true, trace)
+    | FNot formula ->
+      let okay1, trace1 = check_internal ((formula, nproc)::trace) formula in
+      (not okay1, trace1)
+    | FFalse -> (false, trace)
+    | FAnd (f1, f2) -> 
+      let okay1, trace1 = check_internal ((f1, nproc)::trace) f1 in
+      if not okay1 then okay1, trace1 else
+      let okay2, trace2 = check_internal  ((f2, nproc)::trace1) f2 in
+      (okay1 && okay2, trace2)
+    | FOr (f1, f2) -> 
+      let okay1, trace1 = check_internal ((f1, nproc)::trace) f1 in
+      if okay1 then okay1, trace else
+      let okay2, trace2 = check_internal ((f2, nproc)::trace1) f2 in
+      (okay1 || okay2, trace2)
+    | FImplies (f1, f2) -> 
+      let okay1, trace1 = check_internal ((f1, nproc)::trace) f1 in
+      if not okay1 then not okay1, trace1 else
+      let okay2, trace2 = check_internal ((f2, nproc)::trace1) f2 in
+      (not okay1 || okay2, trace2) 
     | FModal (modality, formula) ->
-        check_modality def_map prop_map modality formula nproc
+        check_modality def_map prop_map trace modality formula nproc
     | FInvModal (modality, formula) ->
-        not @@ check_modality def_map prop_map modality formula nproc
+        let okay1, trace1 = 
+          check_modality def_map prop_map trace modality formula nproc
+        in
+        (not okay1, trace1)
         (* TODO : à vérifier la correctness *)
     (* transitions : not <a> ou not [a] *)
     | FProp (prop_name, params) ->
-        check_prop_call def_map prop_map prop_name params nproc
+        check_prop_call def_map prop_map prop_name trace formula params nproc
     | FVar var ->
-        check_prop_call def_map prop_map var [] nproc
+        check_prop_call def_map prop_map var trace formula [] nproc
     | FMu (x, env, mu_formula) ->
       let formula' =
         FNot (FNu (x, env, FNot (beta_reduce mu_formula x (FNot (FVar x)))))
-      in check_internal formula'
-    | FNu (_, env, _) when List.mem nproc env -> true
+      in check_internal ((formula', nproc)::trace) formula'
+    | FNu (_, env, _) when List.mem nproc env -> (true, trace)
     | FNu (x, env, formula) ->
         let reduced_formula =
           beta_reduce formula x @@ FNu(x, nproc::env, formula)
         in
-        check_internal reduced_formula
+        check_internal ((reduced_formula, nproc)::trace) reduced_formula
   in
-  check_internal formula
+  check_internal trace formula
 
 
-and check_modality def_map prop_map modality formula process =
+and check_modality def_map prop_map trace modality formula process =
   let ts = transitions_of def_map process  in
-  let quantif = match modality with
-    | _, Necessity, _ -> PSet.for_all
-    | _, Possibly, _  -> PSet.exists
+  let operator, acc_init = match modality with
+    | _, Necessity, _ -> (&&), true
+    | _, Possibly, _  -> (||), false
   in
-  quantif (check def_map prop_map formula)
-    (next_process_set def_map modality ts)
+  let folding element (acc_okay, acc_trace) =
+    let okay1, trace1 = 
+      check def_map prop_map ((formula, element)::acc_trace) formula element
+    in
+      Printf.printf "here : %s\n" @@ string_of_bool okay1;
+      Printf.printf "here : %s\n" @@ string_of_bool acc_okay;
+      Printf.printf "here : %s\n\n" @@ string_of_bool (operator okay1 acc_okay);
+      (operator okay1 acc_okay, trace1)
+  in
+  PSet.fold folding (next_process_set def_map modality ts) (acc_init, trace)
 
 
-and check_prop_call def_map prop_map prop_name params process =
+and check_prop_call def_map prop_map prop_name trace formula params process =
   let (Proposition (_, param_names, formula)) =
     try
       Hashtbl.find prop_map prop_name
@@ -127,4 +154,5 @@ and check_prop_call def_map prop_map prop_name params process =
         beta_reduce formula param_name param_content
     in
     let reduced_formula = List.fold_left reduce_param formula params_map in
-    check def_map prop_map reduced_formula process
+    check def_map prop_map ((reduced_formula, process)::trace) 
+          reduced_formula process
