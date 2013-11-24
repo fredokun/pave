@@ -5,18 +5,18 @@
 # prop p3() = <a!>true;
 
 # Check if, after every action, there is no out
-#prop noIn() = [.][?]false;
+prop noIn() = Nu(X). ([?]false) and [.]X;
 
-#def proc1 = a!, b!, 0;
+def proc1 = a!, b!, proc1;
 
 # Returns OK
-#checklocal noIn() |- proc1;
+checklocal noIn() |- proc1;
 
 # After the first action, there is a out
-#def proc2 = a!, b?, 0;
+def proc2 = a!, b?, proc2;
 
 # Returns false
-#checklocal noIn() |- proc2;
+checklocal noIn() |- proc2;
 
 
 # Exercise 1 of TD5
@@ -63,6 +63,23 @@ checklocal eventually(deadlock()) |- Loop;
 
 # This example was given in the Exercise 5
 prop correct() = ([start!]true) => eventually((<stop!>true) or ([.]false));
-def p = start!, a!, b!, p2;
+def s = start!, p;
+def p = a!, b!, p2;
 def p2 = c?, p + stop!, 0;
-checklocal correct() |- p;
+checklocal correct() |- s;
+
+#####
+# Some more examples
+
+# The process first matches A, and after some time B
+prop until(A,B) = Nu(X).(B or (A and [.]X));
+
+#####
+# Some examples of the mucalulus by value
+
+type Range = [0..3];
+# The process that does in_0?, in_1? and in_2?
+prop fa() = forall $in:Range, $in < 3 | (<<$in?>>true);
+
+# The processes that does at least out_0!, out_1! or out_2!
+prop fa() = exists $out:Range, $out < 3 | (<<$out!>>true);
