@@ -1,0 +1,9 @@
+def P = a!,Q;
+def Q = b!,P;
+prop B = Nu(X).<b!>X;
+checklocal B |- P;
+
+prop B1 = Nu(X).<a!>X;
+checklocal B1 |- P;
+
+checklocal B or B1 |- P;

@@ -365,3 +365,4 @@ let handle_check_local formula process =
   end
 
 let handle_check_global formula process = Global.check formula process
+

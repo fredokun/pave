@@ -369,6 +369,7 @@
       formula:
   | TRUE { FTrue }
   | FALSE { FFalse }
+  | LPAREN formula RPAREN { $2 }
   | formula AND formula { FAnd ($1,$3) }
   | formula OR formula { FOr ($1,$3) }
   | formula IMPLIES formula { FImplies ($1,$3) }

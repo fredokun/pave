@@ -72,23 +72,23 @@ let rec check def_map prop_map trace formula nproc  =
   let rec check_internal trace = function
     | FTrue -> (true, trace)
     | FNot formula ->
-      let okay1, trace1 = check_internal (( formula, nproc)::trace) formula in
+      let okay1, trace1 = check_internal ((formula, nproc)::trace) formula in
       (not okay1, trace1)
     | FFalse -> (false, trace)
     | FAnd (f1, f2) -> 
-      let okay1, trace1 = check_internal (( f1, nproc)::trace) f1 in
+      let okay1, trace1 = check_internal ((f1, nproc)::trace) f1 in
       if not okay1 then okay1, trace1 else
-      let okay2, trace2 = check_internal  (( f2, nproc)::trace1) f2 in
+      let okay2, trace2 = check_internal  ((f2, nproc)::trace1) f2 in
       (okay1 && okay2, trace2)
     | FOr (f1, f2) -> 
-      let okay1, trace1 = check_internal (( f1, nproc)::trace) f1 in
+      let okay1, trace1 = check_internal ((f1, nproc)::trace) f1 in
       if okay1 then okay1, trace else
-      let okay2, trace2 = check_internal (( f2, nproc)::trace1) f2 in
+      let okay2, trace2 = check_internal ((f2, nproc)::trace1) f2 in
       (okay1 || okay2, trace2)
     | FImplies (f1, f2) -> 
-      let okay1, trace1 = check_internal (( f1, nproc)::trace) f1 in
+      let okay1, trace1 = check_internal ((f1, nproc)::trace) f1 in
       if not okay1 then not okay1, trace1 else
-      let okay2, trace2 = check_internal (( f2, nproc)::trace1) f2 in
+      let okay2, trace2 = check_internal ((f2, nproc)::trace1) f2 in
       (not okay1 || okay2, trace2) 
     | FModal (modality, formula) ->
         check_modality def_map prop_map trace modality formula nproc
@@ -106,30 +106,33 @@ let rec check def_map prop_map trace formula nproc  =
     | FMu (x, env, mu_formula) ->
       let formula' =
         FNot (FNu (x, env, FNot (beta_reduce mu_formula x (FNot (FVar x)))))
-      in check_internal (( formula', nproc)::trace) formula'
+      in check_internal ((formula', nproc)::trace) formula'
     | FNu (_, env, _) when List.mem nproc env -> (true, trace)
     | FNu (x, env, formula) ->
         let reduced_formula =
           beta_reduce formula x @@ FNu(x, nproc::env, formula)
         in
-        check_internal (( reduced_formula, nproc)::trace) reduced_formula
+        check_internal ((reduced_formula, nproc)::trace) reduced_formula
   in
   check_internal trace formula
 
 
 and check_modality def_map prop_map trace modality formula process =
   let ts = transitions_of def_map process  in
-  let operator = match modality with
-    | _, Necessity, _ -> (&&)
-    | _, Possibly, _  -> (||)
+  let operator, acc_init = match modality with
+    | _, Necessity, _ -> (&&), true
+    | _, Possibly, _  -> (||), false
   in
   let folding element (acc_okay, acc_trace) =
     let okay1, trace1 = 
-      check def_map prop_map ((formula, process)::acc_trace) formula element
+      check def_map prop_map ((formula, element)::acc_trace) formula element
     in
+      Printf.printf "here : %s\n" @@ string_of_bool okay1;
+      Printf.printf "here : %s\n" @@ string_of_bool acc_okay;
+      Printf.printf "here : %s\n\n" @@ string_of_bool (operator okay1 acc_okay);
       (operator okay1 acc_okay, trace1)
   in
-  PSet.fold folding (next_process_set def_map modality ts) (false, trace)
+  PSet.fold folding (next_process_set def_map modality ts) (acc_init, trace)
 
 
 and check_prop_call def_map prop_map prop_name trace formula params process =
