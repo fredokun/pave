@@ -311,4 +311,7 @@ let handle_check_local f p =
   Local_checker.check_local global_definition_map prop_env f p
   >> printf "%s |- %s = %b\n%!" (string_of_formula f) (string_of_process p)
 
-let handle_check_global _ _ = failwith "TODO"
+let handle_check_global f p = 
+  let p_states = Global_checker.(eval f (establish_system p) []) in
+  PSet.mem (normalize p) p_states >>
+    Printf.printf "%s |- %s = %b\n%!" (string_of_formula f) (string_of_process p)
