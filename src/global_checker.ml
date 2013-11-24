@@ -1,6 +1,6 @@
 open Formula
 open Presyntax
-open Syntax
+(* open Syntax *)
 open Semop
 open Normalize
 

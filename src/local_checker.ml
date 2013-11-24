@@ -72,28 +72,12 @@ let reduce_proposition prop_env id fargs =
   with 
     | Invalid_argument _ -> raise (Failure ("Wrong arity in the proposition : "^id))
 
-(** False_property of reason * proc *)
-exception False_property of string
-
-type debug_stack = {expected_result:bool; process_stack:Normalize.nprocess list}
-
-let reverse_expected_result stack = {stack with expected_result=not stack.expected_result}
-let push_process p stack = {stack with process_stack=p::stack.process_stack}
-let new_debug_stack = {expected_result=true; process_stack=[]}
-
-let check_necessity debug_stack f_checker sub_processes =
-  let res = PSet.exists f_checker sub_processes in
-  if res = debug_stack.expected_result then
-    res
-  else
-    let (sats, unsats) = PSet.partition f_checker sub_processes in
-    assert false
 
 (** Calcul l'ensemble des transitions possibles pour le processus puis
     filtre celles satisfaisant la modalité pour finalement vérifier,
     selon la modalité, la satisfaction de la formule *)
-let rec check_modality debug_stack def_env prop_env modality formula process =
-  let f_checker = check_formula debug_stack def_env prop_env formula in
+let rec check_modality def_env prop_env modality formula process =
+  let f_checker = check_formula def_env prop_env formula in
   let derivs =
     if is_weak_modality modality then
       Semop.weak_transitions false def_env process
@@ -108,34 +92,33 @@ let rec check_modality debug_stack def_env prop_env modality formula process =
   op f_checker sub_processes     
 
 (** Vérifie la satisfaction d'une formule pour un processus *)
-and check_formula debug_stack def_env prop_env formula process = 
-  let rec loop debug_stack = function
+and check_formula def_env prop_env formula process = 
+  let rec loop = function
     | FTrue -> true
     | FFalse -> false
-    | FAnd (f1, f2) -> loop debug_stack f1 && loop debug_stack f2
-    | FOr (f1, f2) -> loop debug_stack f1 || loop debug_stack f2
-    | FNot f -> not (loop (reverse_expected_result debug_stack) f)
+    | FAnd (f1, f2) -> loop f1 && loop f2
+    | FOr (f1, f2) -> loop f1 || loop f2
+    | FNot f -> not (loop f)
     | FImplies (f1, f2) ->
-      not (loop (reverse_expected_result debug_stack) f1)
-      || loop debug_stack f2
-    | FModal (m, f) -> check_modality debug_stack def_env prop_env m f process
-    | FInvModal (m, f) -> not (check_modality (reverse_expected_result debug_stack) def_env prop_env m f process)
+      not (loop f1) || loop f2
+    | FModal (m, f) -> check_modality def_env prop_env m f process
+    | FInvModal (m, f) -> not (check_modality def_env prop_env m f process)
     | FProp (id, args) -> 
-      loop debug_stack (reduce_proposition prop_env id args)
+      loop (reduce_proposition prop_env id args)
     | FVar id -> 
-      loop debug_stack (reduce_proposition prop_env id [])
+      loop (reduce_proposition prop_env id [])
     | FMu (id, mu_env, f) -> 
       let equiv = FNot (FNu (id, mu_env, FNot (subst id f (FNot (FVar id))))) in
-      loop debug_stack equiv
+      loop equiv
     | FNu (id, nu_env, f) -> 
       PSet.mem process nu_env
       || let new_env = PSet.add process nu_env in
 	 let b' = subst id f (FNu(id, new_env, f)) in
-	 loop debug_stack b'
-  in loop (push_process process debug_stack) formula
+	 loop b'
+  in loop formula
 
 (** [check_local def_env prop_env formula process] vérifie que
     [formula] |- [process] pour un environnement de définitions de process
     [def_env] et un environnement de formule [prop_env] *)
 and check_local def_env prop_env formula process =
-  Normalize.normalize process >> check_formula new_debug_stack def_env prop_env formula
+  Normalize.normalize process >> check_formula def_env prop_env formula
