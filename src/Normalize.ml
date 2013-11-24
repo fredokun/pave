@@ -38,7 +38,7 @@ let string_of_nprocess (res, nproc) =
     else
       "new" ^ (string_of_args (fun x -> x) (SSet.elements res)) ^ "[" ^
 	(string_of_nproc nproc) ^ "]"
-	
+
 let is_normalized (_, nproc,_) =
   let rec norm = function
     | NPrefix (_,q) -> norm q
@@ -102,16 +102,16 @@ let denormalize (res, nproc) =
     | NRename(var,name,p) -> Rename (var,name,denorm_sub p)
   in
     SSet.fold (fun n p -> Res (n, p)) res (denorm_sub nproc)
-      
+
 (***)
-let rec mem_target a list = 
+let rec mem_target a list =
   match list with
     | [] -> false
     | (target,_)::tl -> if (target = a) then true else mem_target a tl
 
-let mem_value a list = 
+let mem_value a list =
   match list with
-    | [] -> false 
+    | [] -> false
     | (_,value)::tl -> if (value = a) then true else mem_target a tl
 
 
@@ -130,13 +130,13 @@ let simple_normalize proc =
   let rec snorm_one map = function
     | Silent -> Silent
     | Prefix (Tau, proc) -> Prefix (Tau, snorm_one map proc)
-    | Prefix (In name, proc) -> 
+    | Prefix (In name, proc) ->
       Prefix (In (SMap.find name map), snorm_one map proc)
     | Prefix (Out name, proc) ->
       Prefix (Out (SMap.find name map), snorm_one map proc)
     | Sum (proc1, proc2) ->  Sum(snorm_one map proc1, snorm_one map proc2)
     | Par (proc1, proc2) -> Par(snorm_one map proc1, snorm_one map proc2)
-    | Res (name, proc) -> 
+    | Res (name, proc) ->
       let fname = gen() in
       let
 	  map' = SMap.add name fname map
@@ -153,16 +153,16 @@ let simple_normalize proc =
         Rename(old,value', snorm_one map proc)
   in
   let tmpproc =
-    snorm_one init_map proc 
+    snorm_one init_map proc
   in
   let findname name map =
-    if SSet.mem name !nus 
-    then 
+    if SSet.mem name !nus
+    then
       name
     else
       SMap.find name map
   in
-  let rec norm_sub map = function 
+  let rec norm_sub map = function
     | Silent -> NSilent
     | Prefix (Tau, proc) -> NPrefix (Tau, norm_sub map proc)
     | Prefix (In name, proc) -> NPrefix (In (findname name map), norm_sub map proc)
@@ -184,7 +184,7 @@ let simple_normalize proc =
     | Res (_, proc) -> norm_sub map proc
     | Call (name, args) -> NCall (name, args)
     | Rename (old,value,proc) ->
-      let value' = 
+      let value' =
         if SMap.mem value map
         then findname value map
         else value
@@ -259,8 +259,8 @@ let complex_normalize ((bounded : SSet.t), nproc) frees =
 	  NPrefix (Out (SMap.find name name_map), rename np)
       | NSum nps -> NSum (List.map rename nps)
       | NPar nps -> NPar (List.map rename nps)
-      | NRename(var,name,np) -> 
-        let name' = 
+      | NRename(var,name,np) ->
+        let name' =
           if SMap.mem name name_map
           then SMap.find name name_map
           else name
@@ -303,7 +303,7 @@ let nproc_subst nproc m n =
 
 let nsubst (res, nproc) m n =
   (SSet.add n (SSet.remove m res), nproc_subst nproc m n)
-    
+
 let rec nsubsts p ms ns = match (ms,ns) with
   | ([],[]) -> p
   | ([],_) -> failwith "nsubsts: bad cosupport"
