@@ -1,0 +1,139 @@
+
+
+\pdfminorversion 7
+\pdfobjcompresslevel 3
+
+\documentclass[a4paper]{article}
+\special{papersize=210mm,297mm}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{cite}
+\usepackage[francais]{babel}
+\usepackage[bookmarks=false,colorlinks,linkcolor=blue]{hyperref}
+\usepackage[top=3cm,bottom=2cm,left=3cm,right=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage{eso-pic}
+\usepackage{array}
+\usepackage{color}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{eurosym}
+\usepackage{url}
+\usepackage{textcomp}
+\usepackage{fancyhdr} 
+\usepackage{tikz}
+\usetikzlibrary{automata,positioning}
+
+\definecolor{lightgray}{gray}{0.9}
+
+\title{Projet de SACC}
+\author{Rémy \textsc{El-Sibaie Besognet} -- Roven \textsc{Gabriel}}
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Le logiciel Pave est un interprète pour un langage de modélisation de
+système concurrent : CCS\footnote{Calculus of communicating
+systems}. Il a été développé par les différentes générations
+d'étudiants de l'UE SACC. La dernière pierre ajoutée à cet édifice est
+la prise en main du $\mu$-Calcul dans l'interprète. Après l'ajout de
+sucre syntaxique, l'objectif est d'implémenter un algorithme de
+vérification d'un processus décrit en CCS à partir d'une formule
+$\mu$-Calcul.
+
+On appelle cette vérification du \emph{Model Checking}. On vérifie
+que la description d'un programme est fidèle à sa spécification de
+façon automatique. On présentera ici deux algorithme pour le
+Model Checking
+à hauteur de notre compréhension : local et global. Seul
+l'algorithme local a été écrit dans la version proposée par notre binôme.
+
+%% \section{$\mu$-Calcul par valeur}
+
+\section{Model checking local}
+
+L'algorithme de model checking local a été inspiré par Glynn Winskel
+dans \emph{Topics in concurrency}. Le principe est en fait assez
+simple. On parcourt récursivement le processus et la formule en
+vérifiant que chaque état du processus vérifie la formule. On traite
+les cas triviaux en traduisant simplement l'opérateur $\mu$-Calcul en
+opérateur booléen inductivement.
+
+\begin{lstlisting}[language=caml]
+let rec check def_map prop_map formula nproc =
+  let rec check_internal = function
+    | FTrue -> true
+    | FFalse -> false
+    | FNot formula -> not @@ check_internal formula
+    | FAnd (f1, f2) -> check_internal f1 && check_internal f2
+    | FOr (f1, f2) -> check_internal f1 || check_internal f2
+    | FImplies (f1, f2) -> check_internal f1 |> not || check_internal f2
+    | ...
+\end{lstlisting}
+
+On considère un processus $p$. Dans le cas des modalités, on récupère
+toutes les dérivations possibles de $p$ dont la transition est
+étiquetée par la bonne action (sans oublier \texttt{<>}
+et \texttt{[]}) et on construit un ensemble de processus qui
+correspond aux suivants de $p$. On appelle récursivement notre
+fonction \texttt{check} sur les éléments de cet ensemble avec la
+formule sans la modalité.
+
+La partie concernant les points fixes n'était pas triviale. L'idée est
+de définir une fonction de \emph{beta-reduction} et de remplacer
+récursivement le résultat courant dans l'appel suivant.
+
+\begin{lstlisting}[language=caml]
+let beta_reduce in_formula expected_var replacement =
+  let rec beta_reduce in_formula =
+  match in_formula with
+  | FTrue | FFalse -> in_formula
+  | FAnd (f1, f2) -> FAnd(beta_reduce f1, beta_reduce f2)
+  | FOr (f1, f2) -> FOr(beta_reduce f1, beta_reduce f2)
+  | FImplies (f1, f2) -> FImplies(beta_reduce f1, beta_reduce f2)
+  | FModal (modality, formula) -> FModal(modality, beta_reduce formula)
+  | FInvModal (modality, formula) -> FInvModal(modality, beta_reduce formula)
+  | FProp _ -> in_formula
+  | FVar var when var = expected_var -> replacement
+  | FVar _ -> in_formula
+  | FMu (x, env, formula) -> FMu(x, env, beta_reduce formula)
+  | FNu (x, env, formula) -> FNu(x, env, beta_reduce formula)
+  | FNot formula -> FNot (beta_reduce formula)
+  in
+  beta_reduce in_formula
+\end{lstlisting}
+
+
+
+\section{Model Checking global}
+
+L'algorithme global pour le Model Checking a, lui, été inspiré par
+Sergey Berezin dans \emph{Model Checking algorithms for
+$\mu$-Calculus} L'implémentation de cet algorithme dans le projet a
+été arrêtée par manque de compréhension de l'article présenté et de
+l'idée même de la méthode dite globale. Nous n'avons pas compris les
+paramètres et ce qu'était sensé rendre l'algorithme.
+
+Notre première démarche a été de vouloir le résoudre avec la méthode
+proposée des BDD, d'où la présence du module correspondant. La
+traduction d'une formule vers un BDD demandait préalablement d'avoir
+compris l'algorithme simple. Nous avons donc tenté cette approche sans
+plus de succès.
+
+
+\section{Exemples}
+
+\end{document}
+
+# Local Variables:
+# compile-command: "rubber -d rapport.tex"
+# End:
+
+%%  LocalWords:  Glynn Winskel Topics concurrency

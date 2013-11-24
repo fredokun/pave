@@ -9,9 +9,9 @@ type error =
 
 exception Error of error
 
-(* Trace, tuple of labels visited and 
+(* Trace, tuple of labels visited and
    process remaining to execute *)
-type trace = (formula * Normalize.nprocess) list  
+type trace = (formula * Normalize.nprocess) list
 
 let print_error = function
   | Unbound_Proposition s -> Printf.printf "unbound proposition %s\n" s
@@ -19,7 +19,8 @@ let print_error = function
     Printf.printf "unmatching length on proposition %s\n" s
 
 let transitions_of def_map nproc = Semop.derivatives def_map nproc
-let weak_transitions_of def_map nproc = Semop.weak_derivatives true def_map nproc
+let weak_transitions_of def_map nproc =
+  Semop.weak_derivatives true def_map nproc
 
 
 let check_label_prefixes lbl pref =
@@ -82,21 +83,21 @@ let rec check def_map prop_map trace formula nproc  =
       let okay1, trace1 = check_internal ((formula, nproc)::trace) formula in
       (not okay1, trace1)
     | FFalse -> (false, trace)
-    | FAnd (f1, f2) -> 
+    | FAnd (f1, f2) ->
       let okay1, trace1 = check_internal ((f1, nproc)::trace) f1 in
       if not okay1 then okay1, trace1 else
       let okay2, trace2 = check_internal  ((f2, nproc)::trace1) f2 in
       (okay1 && okay2, trace2)
-    | FOr (f1, f2) -> 
+    | FOr (f1, f2) ->
       let okay1, trace1 = check_internal ((f1, nproc)::trace) f1 in
       if okay1 then okay1, trace else
       let okay2, trace2 = check_internal ((f2, nproc)::trace1) f2 in
       (okay1 || okay2, trace2)
-    | FImplies (f1, f2) -> 
+    | FImplies (f1, f2) ->
       let okay1, trace1 = check_internal ((f1, nproc)::trace) f1 in
       if not okay1 then not okay1, trace1 else
       let okay2, trace2 = check_internal ((f2, nproc)::trace1) f2 in
-      (not okay1 || okay2, trace2) 
+      (not okay1 || okay2, trace2)
     | FModal (modality, formula) ->
         check_modality def_map prop_map trace modality false formula nproc
     | FInvModal (modality, formula) ->
@@ -126,7 +127,7 @@ and check_modality def_map prop_map trace modality inv formula process =
     | _, Possibly, _  -> (||), false
   in
   let folding element (acc_okay, acc_trace) =
-    let okay1, trace1 = 
+    let okay1, trace1 =
       check def_map prop_map ((formula, element)::acc_trace) formula element
     in
       (operator okay1 acc_okay, trace1)
@@ -150,5 +151,5 @@ and check_prop_call def_map prop_map prop_name trace formula params process =
         beta_reduce formula param_name param_content
     in
     let reduced_formula = List.fold_left reduce_param formula params_map in
-    check def_map prop_map ((reduced_formula, process)::trace) 
+    check def_map prop_map ((reduced_formula, process)::trace)
           reduced_formula process
