@@ -32,7 +32,7 @@ let check_label_prefixes lbl pref =
 
 
 
-let rec next_process_set def_map modality transitions =
+let rec next_process_set def_map modality inv transitions =
   let choose transition destination_set =
     let _, mod_to_check, destination = transition in
     match modality, mod_to_check with
@@ -45,8 +45,12 @@ let rec next_process_set def_map modality transitions =
         (PrefixMap.fold (fun k d a -> PSet.union d a)
            (weak_transitions_of def_map destination)
            destination_set)
-    | (_, _, Rpref acts), label ->
+    | (_, _, Rpref acts), label when not inv ->
       if List.exists (check_label_prefixes label) acts then
+        PSet.add destination destination_set
+      else destination_set
+    | (_, _, Rpref acts), label when inv ->
+      if not @@ List.exists (check_label_prefixes label) acts then
         PSet.add destination destination_set
       else destination_set
     | _ -> destination_set
@@ -94,14 +98,9 @@ let rec check def_map prop_map trace formula nproc  =
       let okay2, trace2 = check_internal ((f2, nproc)::trace1) f2 in
       (not okay1 || okay2, trace2) 
     | FModal (modality, formula) ->
-        check_modality def_map prop_map trace modality formula nproc
+        check_modality def_map prop_map trace modality false formula nproc
     | FInvModal (modality, formula) ->
-        let okay1, trace1 = 
-          check_modality def_map prop_map trace modality formula nproc
-        in
-        (not okay1, trace1)
-        (* TODO : à vérifier la correctness *)
-    (* transitions : not <a> ou not [a] *)
+        check_modality def_map prop_map trace modality true formula nproc
     | FProp (prop_name, params) ->
         check_prop_call def_map prop_map prop_name trace formula params nproc
     | FVar var ->
@@ -120,7 +119,7 @@ let rec check def_map prop_map trace formula nproc  =
   check_internal trace formula
 
 
-and check_modality def_map prop_map trace modality formula process =
+and check_modality def_map prop_map trace modality inv formula process =
   let ts = transitions_of def_map process  in
   let operator, acc_init = match modality with
     | _, Necessity, _ -> (&&), true
@@ -130,12 +129,9 @@ and check_modality def_map prop_map trace modality formula process =
     let okay1, trace1 = 
       check def_map prop_map ((formula, element)::acc_trace) formula element
     in
-      Printf.printf "here : %s\n" @@ string_of_bool okay1;
-      Printf.printf "here : %s\n" @@ string_of_bool acc_okay;
-      Printf.printf "here : %s\n\n" @@ string_of_bool (operator okay1 acc_okay);
       (operator okay1 acc_okay, trace1)
   in
-  PSet.fold folding (next_process_set def_map modality ts) (acc_init, trace)
+  PSet.fold folding (next_process_set def_map modality inv ts) (acc_init, trace)
 
 
 and check_prop_call def_map prop_map prop_name trace formula params process =
