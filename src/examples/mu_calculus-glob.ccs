@@ -1,0 +1,63 @@
+def A = a!,B ;
+def B = a!,A ;
+
+prop F = Nu(X).<a!>true and [.]X ;
+
+checkglobal F |- A ;
+
+def P1 = a!,0 || a?,0 ;
+
+checkglobal <a!>true |- P1 ;
+checkglobal <a?>true |- P1 ;
+checkglobal <tau>true |- P1 ;
+
+def P2 = a!,0 + a?,0 ;
+
+checkglobal <a!>true |- P2 ;
+checkglobal <a?>true |- P2 ;
+checkglobal [.][.]false |- P2 ; 
+
+def P3 = new(a)[a?,b!,0 || a!,b?,c!,0] ;
+
+checkglobal [a?,a!]false |- P3 ;
+checkglobal <tau>true |- P3 ;
+checkglobal <tau><tau>true |- P3 ;
+checkglobal <tau><tau>[.]true |- P3 ;
+
+prop NoDeadLock = Nu(X). <.>true and [.]X ;
+
+checkglobal NoDeadLock |- new(a)[ a?,0 || a!,0 ] ;
+checkglobal NoDeadLock |- new(a)[ a!,0 || a!,0 ] ;
+checkglobal NoDeadLock |- a!,0 ;
+checkglobal NoDeadLock |- A ;
+
+def L = a!,b!,c!,0 ;
+checkglobal Mu(X).Nu(Y).(<a!><b!><c!>Y or <.>X) |- L ;
+
+prop Until(A,B) = Nu(X). B or (A and [.]X) ;
+
+checkglobal Until(<a!>true, <b!>true) |- a!,a!,a!,b!,0 ;
+checkglobal Until(<a!>true, <b!>true) |- b!,0 ;
+checkglobal Until(<a!>true, <b!>true) |- b!,0 ;
+checkglobal Until(<a!>true, <b!>true) |- A ;
+
+checkglobal Until(<a!>true, <b!>true) |- c!,a!,b!,0 ;
+checkglobal Until(<a!>true, <b!>true) |- a!,a!,c!,b!,0 ;
+
+prop SUntil(A,B) = Mu(X). B or (A and [.]X) ;
+
+checkglobal SUntil(<a!>true, <b!>true) |- A ;
+checkglobal SUntil(<a!>true, <b!>true) |- b!,0 ;
+checkglobal SUntil(<a!>true, <b!>true) |- a!,b!,0 ;
+
+
+checkglobal [[c!]]true |- tau,tau,c!,a!,0 ;
+checkglobal [[c!]]<a!>true |- tau,tau,c!,a!,0 ;
+checkglobal [[c!]]<a!>true |- tau,tau,c!,tau,a!,0 ;
+checkglobal [[c!]]<<a!>>true |- tau,tau,c!,tau,a!,0 ;
+
+checkglobal <<.>><c!>true |- tau,tau,c!,tau,a!,0 ;
+
+checkglobal <<a!>>[a!]false |- tau,a!,tau,b!,0 || tau,a!,tau,c!,0 ;
+
+checkglobal <tau>true |- a!,tau,b!,0||a?,tau,c!,0 ;
