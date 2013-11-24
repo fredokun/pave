@@ -48,10 +48,10 @@ sucre syntaxique, l'objectif est d'implémenter un algorithme de
 vérification d'un processus décrit en CCS à partir d'une formule
 $\mu$-Calcul.
 
-On appelle cette vérification du \emph{model-checking}. On vérifie
+On appelle cette vérification du \emph{Model Checking}. On vérifie
 que la description d'un programme est fidèle à sa spécification de
 façon automatique. On présentera ici deux algorithme pour le
-model-checking
+Model Checking
 à hauteur de notre compréhension : local et global. Seul
 l'algorithme local a été écrit dans la version proposée par notre binôme.
 
@@ -63,7 +63,7 @@ L'algorithme de model checking local a été inspiré par Glynn Winskel
 dans \emph{Topics in concurrency}. Le principe est en fait assez
 simple. On parcourt récursivement le processus et la formule en
 vérifiant que chaque état du processus vérifie la formule. On traite
-les cas triviaux en traduisant simplement l'opérateur $\mu$-calcul en
+les cas triviaux en traduisant simplement l'opérateur $\mu$-Calcul en
 opérateur booléen inductivement.
 
 \begin{lstlisting}[language=caml]
@@ -87,7 +87,7 @@ fonction \texttt{check} sur les éléments de cet ensemble avec la
 formule sans la modalité.
 
 La partie concernant les points fixes n'était pas triviale. L'idée est
-de définir une fonction de \empg{beta-reduction} et de remplacer
+de définir une fonction de \emph{beta-reduction} et de remplacer
 récursivement le résultat courant dans l'appel suivant.
 
 \begin{lstlisting}[language=caml]
@@ -111,11 +111,21 @@ let beta_reduce in_formula expected_var replacement =
 \end{lstlisting}
 
 
-\section{Model checking global}
 
-Nous avons été arrêtés pour des questions de compréhension de
-l'algorithme. 
+\section{Model Checking global}
 
+L'algorithme global pour le Model Checking a, lui, été inspiré par
+Sergey Berezin dans \emph{Model Checking algorithms for
+$\mu$-Calculus} L'implémentation de cet algorithme dans le projet a
+été arrêtée par manque de compréhension de l'article présenté et de
+l'idée même de la méthode dite globale. Nous n'avons pas compris les
+paramètres et ce qu'était sensé rendre l'algorithme.
+
+Notre première démarche a été de vouloir le résoudre avec la méthode
+proposée des BDD, d'où la présence du module correspondant. La
+traduction d'une formule vers un BDD demandait préalablement d'avoir
+compris l'algorithme simple. Nous avons donc tenté cette approche sans
+plus de succès.
 
 
 \section{Exemples}
