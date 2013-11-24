@@ -1,14 +1,14 @@
 SRCS = $(wildcard *.ml *.mli *.mll *.mly)
 TARGS = stests pave
 KIND = native # d.byte
-FLAGS = -w,Ae,-warn-error,A
+FLAGS = -w,Ae,-annot#,-warn-error,A
 
 all: $(TARGS)
 
-stests: _build/STests.$(KIND)
+stests: _build/stests.$(KIND)
 	cp $< $@
 
-pave: _build/Pave.$(KIND)
+pave: _build/pave.$(KIND)
 	cp $< $@
 
 tests: _build/tests.$(KIND)

@@ -1,5 +1,4 @@
 open Printf
-
 open Utils
 
 let version_str = "Pave' v.1 r20130910"
@@ -18,23 +17,20 @@ let banner =
 "===============\n"^
  version_str ^ "\n"
 
-let load_file = ref None;;
-let debug_mode = ref false;;
+let load_file = ref None
+let debug_mode = ref false
 
-Arg.parse [
+let () =  Arg.parse [
   ("-load", Arg.String (fun fname -> load_file := Some fname),
-   "load commands from file");
-  ("-debug", Arg.Set debug_mode,
-   "debug mode");
-  ("-version", Arg.Unit (fun () -> printf "%s\n%!" version_str ; exit 0),
-   "print version information")
+   "load commands from file")
+  ; ("-debug", Arg.Set debug_mode,
+     "debug mode")
+  ; ("-version", Arg.Unit (fun () -> printf "%s\n%!" version_str ; exit 0),
+     "print version information")
 ]
-  (fun arg -> eprintf "Invalid argument: %s\n%!" arg ; exit 1)
-  usage;
-;;
-
-printf "%s\n%!" banner;;
-
+  (fun arg -> match !load_file with None -> load_file := Some arg
+    | _ -> eprintf "Invalid argument: %s\n%!" arg ; exit 1)
+  usage
 
 let parse_error_msg lexbuf =
   let p = lexbuf.Lexing.lex_curr_p in
@@ -42,9 +38,11 @@ let parse_error_msg lexbuf =
   let c = p.Lexing.pos_cnum - p.Lexing.pos_bol in
   let tok = Lexing.lexeme lexbuf
   in
-    printf "Parser error at line %d char %d: ~%s~\n%!" l c tok ;;
+    printf "Parser error at line %d char %d: ~%s~\n%!" l c tok 
 
-match !load_file with
+let main () = 
+  printf "%s\n%!" banner;
+  match !load_file with
   | None ->
       printf "Interactive mode... \n%!";
     Control.script_mode := false ;
@@ -60,6 +58,7 @@ match !load_file with
           printf " ==> %s\n%!" msg
 	| Parsing.Parse_error -> 
           parse_error_msg lexbuf
+	| End_of_file -> print_newline (); exit 0
     done
   | Some file ->
       printf "Loading file %s... \n%!" file;
@@ -76,8 +75,10 @@ match !load_file with
               printf " ==> %s\n%!" msg ; true
 	    | Parsing.Parse_error -> 
               parse_error_msg lexbuf ; true
+	    | End_of_file -> false
 	in
 	  if continue then loop ();
       in
 	loop ()
-;;
+
+let () = main ()

@@ -5,6 +5,7 @@ open Syntax
 open Normalize
 open Semop
 open Minim
+open Formula
 
 let help_me = "\n\
 Command summary:\n\
@@ -33,11 +34,11 @@ Command summary:\n\
   quit                   -> quit the program\n\
 "
 
-let script_mode = ref false ;;
+let script_mode = ref false 
 
 
-exception Constdef_Exception of string ;;
-exception Typedef_Exception of string ;;
+exception Constdef_Exception of string 
+exception Typedef_Exception of string 
 
 let handle_help () = 
   printf "%s\n> %!" help_me
@@ -59,7 +60,7 @@ let handle_constdef (const_name:string) (const_val:int) =
     Presyntax.env_const := SMap.add const_name const_val !Presyntax.env_const
   else 
     raise (Constdef_Exception const_name)
-;;
+
 
 let handle_typedef_range (type_name:string) (min_val:string) (max_val:string) =
   (* printf "(handle_typedef_range %s %s %s)\n%!" type_name min_val max_val ; *)
@@ -85,7 +86,7 @@ let handle_typedef_range (type_name:string) (min_val:string) (max_val:string) =
       ) 
   else 
     raise (Typedef_Exception type_name)
-;;
+
 
 let handle_typedef_enum (type_name:string) (names:string list) =
   (* printf "(handle_typedef_enum %s %s)\n%!" type_name (string_of_list (fun x->x) names) ; *)
@@ -98,7 +99,7 @@ let handle_typedef_enum (type_name:string) (names:string list) =
     Presyntax.add_to_env_type type_name ( Presyntax.PTDefEnum (type_name, list2set names) )
   else 
     raise (Typedef_Exception type_name)
-;;
+
 
 let handle_free proc =
   if !script_mode then
@@ -300,14 +301,17 @@ let handle_wderiv p = common_deriv (weak_derivatives false) printPfixMap "wderiv
 let handle_tderiv p = common_deriv (weak_derivatives true) printPfixMap "tderiv" "tau derivatives" p
 
 
+let prop_env : (string, (string list * Formula.formula)) Hashtbl.t = Hashtbl.create 32
 
-let handle_prop _ _ _ = failwith "TODO"
+let handle_prop id params formula = 
+  Hashtbl.add prop_env id (params, formula);
+  printf "Proposition '%s' registered\n%!" id  
 
-let handle_check_local _ _ = failwith "TODO"
+let handle_check_local f p = 
+  Local_checker.check_local global_definition_map prop_env f p
+  >> printf "%s |- %s = %b\n%!" (string_of_formula f) (string_of_process p)
 
-let handle_check_global _ _ = failwith "TODO"
-
-
-
-
-
+let handle_check_global f p = 
+  let p_states = Global_checker.eval f (Global_checker.establish_system p global_definition_map) global_definition_map prop_env in
+  PSet.mem (normalize p) p_states >>
+    Printf.printf "%s |- %s = %b\n%!" (string_of_formula f) (string_of_process p)

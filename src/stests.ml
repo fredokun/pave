@@ -2,7 +2,7 @@ open Printf
 open Utils
 open Syntax
 open Normalize
-open NormTests
+open Norm_tests
 
 let once = Prefix(Out "once", Silent)
 
@@ -36,32 +36,37 @@ let def_res' = Par( (Res("b",(Par ((Prefix(Out("b"),Silent)),
 		   (Prefix(In("a"), Silent)))
 
 let prNames pref fn pname proc =
-  printf "%s (%s) = %s\n" pref pname (string_of_set ident (fn proc));
-;;
+  printf "%s (%s) = %s\n" pref pname (string_of_set ident (fn proc))
+
 
 let prAllNames proc = 
-  printf "---------\n";
-  printf "P := %s\n" (string_of_process proc);
-  prNames "free" freeNames "P" proc;
-  prNames "bound" boundNames "P" proc;
-  prNames "names" names "P" proc;
-  flush stdout;
-;;  
+  begin 
+    printf "---------\n";
+    printf "P := %s\n" (string_of_process proc);
+    prNames "free" freeNames "P" proc;
+    prNames "bound" boundNames "P" proc;
+    prNames "names" names "P" proc;
+    flush stdout;
+  end
 
 let testCongr proc1 proc2 =
-  printf "---------\n";
-  printf "P := %s\n" (string_of_process proc1);
-  printf "norm(P) = %s\n" (string_of_nprocess (normalize proc1));
-  printf "Q := %s\n" (string_of_process proc2);
-  printf "norm(Q) := %s\n" (string_of_nprocess (normalize proc2));
-  printf "P == Q ? %s\n%!" (if proc1 === proc2 then "yes" else "no");
-;;
+  begin 
+    printf "---------\n";
+    printf "P := %s\n" (string_of_process proc1);
+    printf "norm(P) = %s\n" (string_of_nprocess (normalize proc1));
+    printf "Q := %s\n" (string_of_process proc2);
+    printf "norm(Q) := %s\n" (string_of_nprocess (normalize proc2));
+    printf "P == Q ? %s\n%!" (if proc1 === proc2 then "yes" else "no");
+  end
 
-let test1 = prAllNames (def_body def_Jeu);;
+let test1 = prAllNames (def_body def_Jeu)
 
-let test2 = testCongr def_com def_com';;
+let test2 = testCongr def_com def_com'
 
-let test3 = testCongr def_res def_res';;
+let test3 = testCongr def_res def_res'
 
-normalize_random_check 1000 50;;
-normalize_exhaustive_check 50 5;;
+let () = 
+  begin
+    normalize_random_check 1000 50;
+    normalize_exhaustive_check 50 5;
+  end

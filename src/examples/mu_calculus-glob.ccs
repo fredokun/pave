@@ -1,0 +1,32 @@
+def A = a!,B ;
+def B = a!,A ;
+
+def P1 = a!,0 || a?,0 ;
+
+checkglobal <a!>true |- P1 ;
+checkglobal <a?>true |- P1 ;
+checkglobal <tau>true |- P1 ;
+
+def P2 = a!,0 + a?,0 ;
+
+checkglobal <a!>true |- P2 ;
+checkglobal <a?>true |- P2 ;
+checkglobal [.][.]false |- P2 ; 
+
+def P3 = new(a)[a?,b!,0 || a!,b?,c!,0] ;
+
+checkglobal [a?,a!]false |- P3 ;
+checkglobal <tau>true |- P3 ;
+checkglobal <tau><tau>true |- P3 ;
+checkglobal <tau><tau>[.]true |- P3 ;
+
+checkglobal [[c!]]true |- tau,tau,c!,a!,0 ;
+checkglobal [[c!]]<a!>true |- tau,tau,c!,a!,0 ;
+checkglobal [[c!]]<a!>true |- tau,tau,c!,tau,a!,0 ;
+checkglobal [[c!]]<<a!>>true |- tau,tau,c!,tau,a!,0 ;
+
+checkglobal <<.>><c!>true |- tau,tau,c!,tau,a!,0 ;
+
+checkglobal <<a!>>[a!]false |- tau,a!,tau,b!,0 || tau,a!,tau,c!,0 ;
+
+checkglobal <tau>true |- a!,tau,b!,0||a?,tau,c!,0 ;

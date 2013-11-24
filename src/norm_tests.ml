@@ -36,7 +36,7 @@ let rand_proc n =
   in
     if n < 0 then invalid_arg "rand_proc";
     f n [ "a" ; "b" ; "c" ; "d" ; "e" ]
-;;
+
 
 let rec perm_saps proc =
   let rand_list l =
@@ -76,7 +76,7 @@ let rec perm_saps proc =
       | Par (_, _) ->
 	  tree_of_sop (fun p1 p2 -> Par (p1, p2)) (rand_list (search_pars proc))
       |Rename (old,value,proc) ->  Rename(old,value,perm_saps proc)
-;;
+
 
 let alea_nus proc =
   let rec f map proc =
@@ -109,9 +109,9 @@ let alea_nus proc =
   let frees = freeNames proc in
   let init_map = SSet.fold (fun n -> SMap.add n n) frees SMap.empty in
     f init_map proc
-;;
 
-let perm_proc proc = perm_saps (alea_nus proc);;
+
+let perm_proc proc = perm_saps (alea_nus proc)
 
 let normalize_random_check proc_sizes repeat_nb =
   eprintf "Checking normalization (random version)... %!";
@@ -136,7 +136,7 @@ let normalize_random_check proc_sizes repeat_nb =
       )
   done;
   eprintf "done\n** Normalization checked successfully !\n%!"
-;;
+
 
 let normalize_exhaustive_check child_sizes child_nb =
   let childs = Array.init child_nb (fun _ -> rand_proc child_sizes) in
@@ -188,6 +188,6 @@ let normalize_exhaustive_check child_sizes child_nb =
     eprintf "Checking normalization (exhaustive version)... %!";
     iter_order child_nb;
     eprintf "done\n** Normalization checked successfully !\n%!";
-;;
+
 
 Random.self_init ()
