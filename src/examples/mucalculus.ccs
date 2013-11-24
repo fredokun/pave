@@ -5,28 +5,64 @@
 # prop p3() = <a!>true;
 
 # Check if, after every action, there is no out
-prop noIn() = [.][?]false;
+#prop noIn() = [.][?]false;
 
-def proc1 = a!, b!, 0;
+#def proc1 = a!, b!, 0;
 
 # Returns OK
-checklocal noIn() |- proc1;
+#checklocal noIn() |- proc1;
 
 # After the first action, there is a out
-def proc2 = a!, b?, 0;
+#def proc2 = a!, b?, 0;
 
 # Returns false
-checklocal noIn() |- proc2;
+#checklocal noIn() |- proc2;
 
+
+# Exercise 1 of TD5
+prop A() = <tau>((<a!>true) or (<b?>true));
+prop B() = [tau]((<a!>true) or (<b?>true));
+prop C() = ([a!]false) and ([b?] false);
+
+def pA = tau, a!, 0 + tau, c!, 0 + a!, 0;
+
+# Should returns OK
+checklocal A() |- pA;
+
+# Should returns False
+checklocal B() |- pA;
+
+# Should returns False
+checklocal C() |- pA;
+
+# Exercice 5 of TD5
 prop possibly(A) = Mu(X).A or <.> X;
 prop always(A) = Nu(X). A and [.] X;
 prop eventually(A) = Mu(X). A or ((<.>true) and [.] X);
 
 prop deadlock() = [.] false;
+prop cont() = <.> true;
 
 # Will never end
 def Loop = a!, Loop;
 
+# Returns false
 checklocal possibly(deadlock()) |- Loop;
+
+# OK
+checklocal always(cont()) |- Loop;
+
+# Should returns False
 checklocal always(deadlock()) |- Loop;
+
+# OK, since it's a loop
+checklocal eventually(cont()) |- Loop;
+
+# Should return False
 checklocal eventually(deadlock()) |- Loop;
+
+# This example was given in the Exercise 5
+prop correct() = ([start!]true) => eventually((<stop!>true) or ([.]false));
+def p = start!, a!, b!, p2;
+def p2 = c?, p + stop!, 0;
+checklocal correct() |- p;

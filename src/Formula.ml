@@ -5,6 +5,7 @@ open Semop
 open Presyntax
 open Utils
 
+(** Type of "named" prefix *)
 type fprefix =
 | FIn of string
 | FInVar of string
@@ -12,6 +13,8 @@ type fprefix =
 | FOutVar of string
 | FTau
 
+(** Takes a preprefix and gives its corresponding fprefix to be used correctly in
+   the formula *)
 let fprefix_of_preprefix = function
   | PIn (PName n) -> FIn n
   | POut (PName n) -> FOut n
@@ -27,9 +30,11 @@ let string_of_fprefix = function
   | FOutVar n -> "var:" ^ n ^ "!"
   | FTau -> "tau"
 
+(** Transform a preprefix list into a fprefix list *)
 let parse_preprefix_list =
   List.map fprefix_of_preprefix
 
+(** Types used to represent modalities *)
 type strongness = Strong | Weak
 type modal = Possibly | Necessity
 type io =
@@ -59,6 +64,7 @@ let diamond = function
   | _, Possibly, _ -> true
   | _, _, _ -> false
 
+(** Type to represent preformula, particularely the ForAll and Exists terms *)
 type preformula =
   | PFTrue
   | PFFalse
@@ -99,7 +105,7 @@ let rec string_of_preformula : preformula -> string = function
     sprintf "(exists %s, %s in %s)"
       (string_of_preparam par) (string_of_preexpr pe) (string_of_preformula f)
 
-
+(** Similar to preformula, without the quantifying clauses *)
 type formula =
   | FTrue
   | FFalse
@@ -134,6 +140,7 @@ let rec string_of_formula : formula -> string = function
   | FNu(x, _, f) -> sprintf "Nu(%s).%s" x (string_of_formula f)
   | FNot f -> sprintf "~%s" @@ string_of_formula f
 
+(** A prop is a list of bound variables and its formulas *)
 type prop = string list * formula
 
 let props : (string, prop) Hashtbl.t = Hashtbl.create 53
@@ -142,6 +149,7 @@ exception Formdef_exception of string
 exception Unbound_variable of string
 exception Unbound_prop of string
 
+(** Will verify if every variable is bound in the prop *)
 let rec verify_vars f idents =
   match f with
   | FVar v -> if not (List.mem v idents) then raise (Unbound_variable v)
@@ -168,7 +176,8 @@ module IMap = Map.Make(
     let compare = compare
  end)
 
-
+(** Converts a variable name to avoid multiple definitions. Never used however,
+    since the fixed points variables are always in tail position *)
 let alpha_convert f =
   let i = ref 0 in
   let rec step f env =
@@ -199,6 +208,7 @@ let alpha_convert f =
   in
   step f SMap.empty
 
+(** Replaces a var in f by the formula given *)
 let reduce f var value =
   let rec step = function
   | FVar v -> if v = var then value else FVar v
@@ -216,16 +226,11 @@ let reduce f var value =
   in
   step f
 
+(** Replaces each Var by its correspondance. Works as a reduce for multiple
+    vars. Assumes each variable is correctly bound *)
 let substitute f sub_list =
   let rec step sl = function
   | FVar v -> List.assoc v sl
-    (* let s = (List.assoc v sl) in *)
-    (* if Hashtbl.mem props s then *)
-    (*   let (vars, formula) = Hashtbl.find props s in *)
-    (*   if List.length vars = 0 then formula *)
-    (*   else FProp (s, vars) *)
-    (* else *)
-    (*   FVar v *)
   | FTrue | FFalse as f -> f
   | FPar f -> FPar (step sl f)
   | FAnd (f, g) -> FAnd (step sl f, step sl g)
@@ -239,6 +244,7 @@ let substitute f sub_list =
   in
   step sub_list f
 
+(** Inlines a prop call *)
 let substitute_prop f =
   let rec step = function
     | FTrue | FFalse as f -> f
@@ -261,7 +267,7 @@ let substitute_prop f =
   in
   step f
 
-
+(** Renames a modality *)
 let substitute_modality m vars =
   let rename_modal (s,mo,io) =
     match io with
@@ -285,7 +291,7 @@ let substitute_modality m vars =
   in
   rename_modal m
 
-
+(** Computes a preformula quantified into a correct formula *)
 let formula_of_preformula pf =
   let open Syntax in
   let compute_param p =
@@ -297,6 +303,8 @@ let formula_of_preformula pf =
       (Format.sprintf "Unusable param for mu-calculus:%s@." @@ string_of_preparam p)
   in
 
+  (* From Presyntax, modified not to used a global hashtbl, but a local map
+     instead *)
   let rec test_expr vars = function
     | PTrue -> Bool true
     | PFalse -> Bool false
@@ -406,13 +414,17 @@ let formula_of_preformula pf =
     | PFVar v -> FVar v
     | PFMu (x, f) -> FMu (x, PSet.empty, step vars f)
     | PFNu (x, f) -> FNu (x, PSet.empty, step vars f)
-    | PFProp (s, pfl) ->
+
+    | PFProp (s, pfl) -> (* inlining *)
       if Hashtbl.mem props s then
         let (vars', formula) = Hashtbl.find props s in
         let fl = List.map (step vars) pfl in
         substitute formula @@ List.combine vars' fl
       else
         raise (Unbound_prop s)
+
+(* The next two cases compute the qunatification, modifying the modalities to
+   the value given by the quantification *)
     | PFForall (param, expr, f) ->
       let n, val_list = compute_param param in
       List.fold_left
