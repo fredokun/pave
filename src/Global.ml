@@ -12,8 +12,23 @@ let print_error = function
 
 
 
-(* let rec emerson_lei formula  *)
+(*
+  L p = sous ensemble de Top tq p est vraie
+  T action = relation binaire sur t en fonction de a
+*)
 
+let rec simple_eval process defs formula env =
+  let lts = Semop.lts defs Semop.derivatives process in
+  let rec eval formula env =
+    let open Formula in
+    match formula with
+    | FNot _ -> raise @@ Error (No_global_not)
+    | FTrue -> lts
+    | FFalse -> []
+    | FAnd (f1, f2) -> eval f1 env @ eval f2 env
+    | FOr  (f1, f2) -> eval f1 env @ eval f2 env
+    | _ -> assert false
+  in eval formula env
 
 let rec obdd_of_modality env modality =
     match modality with
