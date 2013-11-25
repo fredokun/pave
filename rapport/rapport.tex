@@ -132,7 +132,11 @@ let beta_reduce in_formula expected_var replacement =
 
 \subsection{Trace}
 
-Afin de mieux comprendre les raison d'une propriété fausse, nous avons ajouté la fonctionnalitée de trace. Ainsi, à chaque étape dans l'algorithme, la formule courante et processus courant sont stockés et restitué à la fin de l'opération. Ainsi nous obtenons le chemin qui arrive à la propriété fausse.
+Afin de mieux comprendre les raison d'une propriété fausse, nous avons
+ajouté la fonctionnalitée de trace. Ainsi, à chaque étape dans
+l'algorithme, la formule courante et processus courant sont stockés et
+restitués à la fin de l'opération. Ainsi nous obtenons le chemin qui
+arrive à la propriété fausse.
 
 \begin{verbatim}
 checklocal ~<a?>(<a!>true) |- a!, a?;
@@ -142,7 +146,9 @@ Trace :
 FALSE PROPERTY
 \end{verbatim}
 
-Dans cet exemple nous pouvons voir que c'est à l'étape verb|a?,0| associé à la formule verb|<a!>True| que la propriété devient fausse.
+Dans cet exemple nous pouvons voir que c'est à
+l'étape \verb|a?,0| associé à la
+formule \verb|<a!>True| que la propriété devient fausse.
 
 \begin{verbatim}
 def P = a!,P + b!,P;
@@ -161,7 +167,9 @@ Trace :
 FALSE PROPERTY
 \end{verbatim}
 
-Unn autre exemple de trace qui nous permet de voir que \verb|c!| ne peut apparaitre qu'une seule fois, la consomation de cette action est clairement visible sur les processus utilisés à gauche.
+Un autre exemple de trace qui nous permet de voir que \verb|c!| ne
+peut apparaitre qu'une seule fois, la consomation de cette action est
+clairement visible sur les processus utilisés à gauche.
 
 \section{Model Checking global}
 
@@ -272,8 +280,9 @@ FALSE PROPERTY
 TRUE PROPERTY
 \end{verbatim}
 
-Dans cet exemple nous pouvons observer que la séquence \texttt{a!,a!,c!} n'est 
-possible dans le processus F que si un troisième processus parallel E contenant
+Dans cet exemple nous pouvons observer que la
+séquence \texttt{a!,a!,c!} n'est possible dans le processus F que si
+un troisième processus parallel E contenant
 \texttt{c!} est défini.
 
 \end{document}
