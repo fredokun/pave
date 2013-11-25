@@ -26,6 +26,7 @@ module GSet = Set.Make (
 
 type transitions = nprocess list * label * nprocess list
 
+  (* transition set *)
 module TsSet = Set.Make (
   struct
     type t = transitions
@@ -50,26 +51,26 @@ let string_of_graph g =
     acc ^ (sprintf "%s has prevs %s\n" (string_of_gstate dst)
 	     (string_of_gset string_of_gstate prevs))
   in
-    GMap.fold folder g ""
+  GMap.fold folder g ""
 
-let string_of_partition parts = 
+let string_of_partition parts =
   (List.fold_left
-    (fun s part -> s ^ "\n" ^ (string_of_gset string_of_gstate part)) "" parts)
-    ^ "\n"
+     (fun s part -> s ^ "\n" ^ (string_of_gset string_of_gstate part)) "" parts)
+  ^ "\n"
 
 let build_graph f_deriv init_graph init_partition defs ps =
   let rec add_to_partition part elem =
     match part with
-      | [] -> [GSet.singleton elem]
-      | set::ss ->
-	begin
-	  match (GSet.choose set, elem) with
-	    | (PState _, PState _) ->
-	      (GSet.add elem set)::ss
-	    | (LState(_,a,_), LState(_,b,_)) when a = b ->
-	      (GSet.add elem set)::ss
-	    | _ -> set::(add_to_partition ss elem)
-	end
+    | [] -> [GSet.singleton elem]
+    | set::ss ->
+      begin
+	match (GSet.choose set, elem) with
+	| (PState _, PState _) ->
+	  (GSet.add elem set)::ss
+	| (LState(_,a,_), LState(_,b,_)) when a = b ->
+	  (GSet.add elem set)::ss
+	| _ -> set::(add_to_partition ss elem)
+      end
   in
   let rec f (graph, part) procs_todo procs_done =
     try
@@ -97,93 +98,92 @@ let build_graph f_deriv init_graph init_partition defs ps =
 	PSet.remove p (PSet.union (PSet.diff next_procs procs_done) procs_todo)
       in
       let new_procs_done = PSet.add p procs_done in
-	f (new_graph, new_part) new_procs_todo new_procs_done
+      f (new_graph, new_part) new_procs_todo new_procs_done
     with Not_found -> (graph, part)
   in
   match ps with
-    | [] -> (init_graph, init_partition)
-    | p1::[] -> f (init_graph, init_partition) (PSet.singleton p1) PSet.empty
-    | p1::p2::[] ->
-      let tmp = f (init_graph, init_partition) (PSet.singleton p1) PSet.empty
-      in f tmp (PSet.singleton p2) PSet.empty
-    | _ -> (init_graph, init_partition)
+  | [] -> (init_graph, init_partition)
+  | p1::[] -> f (init_graph, init_partition) (PSet.singleton p1) PSet.empty
+  | p1::p2::[] ->
+    let tmp = f (init_graph, init_partition) (PSet.singleton p1) PSet.empty
+    in f tmp (PSet.singleton p2) PSet.empty
+  | _ -> (init_graph, init_partition)
 
 let rec refine (graph, part) =
-  let prevs = 
+  let prevs =
     List.map (fun x ->
       GSet.fold (fun x' acc -> GSet.union acc (GMap.find x' graph))
 	x GSet.empty) part
   in
-  let split part prev = 
+  let split part prev =
     let p1 = GSet.inter part prev in
     let p2 = GSet.diff part prev in
     (p1, p2)
   in
   let rec f1 pt pr =
     match pt with
-      | [] -> []
-      | h1::t1 -> (f2 h1 pr)@(f1 t1 pr)
-  and f2 pt pr = 
+    | [] -> []
+    | h1::t1 -> (f2 h1 pr)@(f1 t1 pr)
+  and f2 pt pr =
     match pr with
-      | [] -> [pt]
-      | h2::t2 -> let (spl1, spl2) = split pt h2 in
-		  if GSet.is_empty spl1 || GSet.is_empty spl2 then
-		    f2 pt t2
-		  else
-		    [spl1 ; spl2]
+    | [] -> [pt]
+    | h2::t2 -> let (spl1, spl2) = split pt h2 in
+		if GSet.is_empty spl1 || GSet.is_empty spl2 then
+		  f2 pt t2
+		else
+		  [spl1 ; spl2]
   in
   let part' = f1 part prevs in
   if (List.length part = List.length part')
   then part' else refine (graph, part')
 
 let build_lts partition =
-  let (ps, ls) = 
+  let (ps, ls) =
     List.partition (fun x -> match GSet.choose x with
-		    | LState _ -> false
-		    | PState _ -> true)
+    | LState _ -> false
+    | PState _ -> true)
       partition in
   let pstates = List.map
     (fun set ->
-       GSet.fold
-	 (fun x acc -> match x with
-	    | PState (_, np) -> np::acc
-	    | LState _ -> acc) set []
+      GSet.fold
+	(fun x acc -> match x with
+	| PState (_, np) -> np::acc
+	| LState _ -> acc) set []
     ) ps
   and lstates = List.map
     (fun set ->
-       GSet.fold
-	 (fun x acc -> match x with
-	    | PState _ -> acc
-	    | LState t -> t::acc) set []
+      GSet.fold
+	(fun x acc -> match x with
+	| PState _ -> acc
+	| LState t -> t::acc) set []
     ) ls
   in
   let rec f transs todos =
     match todos with
-      | [] -> transs
-      | cp::t ->
-	  begin
-	    let p = List.hd cp in
-	    let labs = 
-	      List.fold_left
-		(fun acc x -> 
-		   match List.filter (fun (src,_,_) -> src = p) x with
-		     | [] -> acc
-		     | t::_ -> t::acc
-		)
-		[] lstates
-	    in let transs' = 
-		List.fold_left
-		  (fun acc (_,lbl,dst) ->
-		     let cdl = List.filter
-		       (fun x -> List.mem dst x) pstates in
-		       assert ((List.length cdl) = 1);
-		       let cd = List.hd cdl in
-                       TsSet.add (cp, lbl, cd) acc
-		  ) transs labs
-	    in f transs' t
-	  end
-  in
-    f TsSet.empty pstates
+    | [] -> transs
+    | cp::t ->
+      begin
+	let p = List.hd cp in
+	let labs =
+	  List.fold_left
+	    (fun acc x ->
+	      match List.filter (fun (src,_,_) -> src = p) x with
+	      | [] -> acc
+	      | t::_ -> t::acc
+	    )
+	    [] lstates
+	in let transs' =
+	     List.fold_left
+	       (fun acc (_,lbl,dst) ->
+		 let cdl = List.filter
+		   (fun x -> List.mem dst x) pstates in
+		 assert ((List.length cdl) = 1);
+		 let cd = List.hd cdl in
+                 TsSet.add (cp, lbl, cd) acc
+	       ) transs labs
+	   in f transs' t
+      end
+  in f TsSet.empty pstates
 
 
 let minimize f_deriv defs proc =
@@ -191,14 +191,14 @@ let minimize f_deriv defs proc =
   let init_partition = [GSet.singleton (PState(false,proc))] in
   let (graph, partition) = build_graph f_deriv init_graph init_partition defs [proc] in
     (*print_endline "STATE GRAPH :";
-    print_string (string_of_graph graph);
-    print_string "PARTITION :";
-    print_string (string_of_partition partition);*)
-    let partition' = refine (graph, partition) in
-      (*print_string "PARTITION REFINED :";
-	print_string (string_of_partition partition');*)
-    let transitions = build_lts partition' in
-      TsSet.fold (fun t acc -> t :: acc) transitions []
+      print_string (string_of_graph graph);
+      print_string "PARTITION :";
+      print_string (string_of_partition partition);*)
+  let partition' = refine (graph, partition) in
+    (*print_string "PARTITION REFINED :";
+      print_string (string_of_partition partition');*)
+  let transitions = build_lts partition' in
+  TsSet.fold (fun t acc -> t :: acc) transitions []
 
 let is_fbisimilar f_deriv defs p1 p2 =
   let root = PState(true,(SSet.empty,NSilent)) in

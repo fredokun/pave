@@ -3,18 +3,19 @@
 
   open Utils
   open Presyntax
+  open Formula
 
 
   let rec mkRes ns p = match ns with
     | [] -> p
     | n::ns' -> PRes(n,(mkRes ns' p))
 
-  let mkRename ns p = 
+  let mkRename ns p =
     let rec ren = function
     | [] -> p
     | (old,value) :: ns' -> PRename(old,value,(ren ns'))
     in
-    ren (List.rev ns)  
+    ren (List.rev ns)
 
 
 (*
@@ -33,7 +34,7 @@
 %}
 
 /* reserved keywords */
-%token DEF TRUE FALSE END NEW TAU DIV WHEN CONSTDEF TYPEDEF
+%token DEF TRUE FALSE END NEW TAU DIV WHEN CONSTDEF TYPEDEF MU NU
 
 /* identifiers */
 %token <string> IDENT
@@ -59,6 +60,11 @@
 %token WMINI
 %token WFBISIM
 
+%token PROP
+%token CHECK_LOCAL
+%token CHECK_GLOBAL
+%token SATISFY
+
 %token HELP
 %token QUIT
 
@@ -70,11 +76,12 @@
 %token IF THEN ELSE INF SUP INFEQ SUPEQ DIFF DOTDOT LACCOL RACCOL
 
 /* operators */
-%token PAR PLUS DOT OUT IN MINUS DIV MULT MOD AND OR NOT
+%token PAR PLUS DOT OUT IN MINUS DIV MULT MOD AND OR NOT IMPLIES
 
 %nonassoc RENAME
 %left PAR
 %left AND , OR
+%right IMPLIES
 %nonassoc INF , INFEQ, SUP, SUPEQ, DIFF, EQUAL
 %left PLUS , MINUS
 %left MULT , DIV , MOD
@@ -93,78 +100,80 @@
 %type <preprocess> process
 %type <preprefix> prefix
 %type <preexpr> expr
+%type <modality> modality
+%type <formula> formula
 
   /* grammar */
 %%
     script:
   | EOF { false }
   | statement SEMICOL { true }
-  | statement error { raise (Fatal_Parse_Error "missing ';' after statement") }
+  | statement error { raise @@ Fatal_Parse_Error "missing ';' after statement"}
 
       minmax:
   | CONST { $1 }
   | INT { (string_of_int $1) }
 
       statement:
-  | definition                     
+  | definition
       { let defs = definitions_of_predefinition $1
         in
-          List.iter Control.handle_definition defs 
+          List.iter Control.handle_definition defs
       }
-  | CONSTDEF CONST EQUAL INT 
+  | CONSTDEF CONST EQUAL INT
       { Control.handle_constdef $2 $4 }
   | TYPEDEF IDENT EQUAL LBRACKET minmax DOTDOT minmax RBRACKET
       { Control.handle_typedef_range $2 $5 $7 }
   | TYPEDEF IDENT EQUAL LACCOL list_of_names RACCOL
       { Control.handle_typedef_enum $2 $5 }
-  | NORM process                   
+  | NORM process
       { Control.handle_normalization (process_of_preprocess $2) }
-  | NORM error     
+  | NORM error
       { raise (Fatal_Parse_Error "missing process to normalize") }
   | STRUCT process EQEQ process
-      { Control.handle_struct_congr 
+      { Control.handle_struct_congr
         (process_of_preprocess $2)
         (process_of_preprocess $4) }
   | STRUCT process error
       { raise (Fatal_Parse_Error "missing '==' for structural congruence") }
   | STRUCT process EQEQ error
       { raise (Fatal_Parse_Error "missing process after '==' for structural congruence") }
-  | STRUCT error 
+  | STRUCT error
       {raise (Fatal_Parse_Error "missing process before '==' for structural congruence") }
-  | BISIM IN process TILD process 
-      { Control.handle_is_bisim 
-        (process_of_preprocess $3) 
+  | BISIM IN process TILD process
+      { Control.handle_is_bisim
+        (process_of_preprocess $3)
         (process_of_preprocess $5) }
   | BISIM IN process error
       { raise (Fatal_Parse_Error "missing '~' for strong bisimilarity") }
   | BISIM IN process TILD error
       { raise (Fatal_Parse_Error "missing process after '~' for strong bisimilarity") }
   | BISIM process TILD process
-      { Control.handle_bisim 
+      { Control.handle_bisim
         (process_of_preprocess $2)
         (process_of_preprocess $4) }
   | BISIM process error
       { raise (Fatal_Parse_Error "missing '~' for strong bisimilarity") }
   | BISIM process TILD error
       { raise (Fatal_Parse_Error "missing process after '~' for strong bisimilarity") }
-  | BISIM error 
+  | BISIM error
       { raise (Fatal_Parse_Error "missing '?' or process before '~' for strong bisimilarity") }
-  | FBISIM IN process TILD process 
-      { Control.handle_is_fbisim 
+  | FBISIM IN process TILD process
+      { Control.handle_is_fbisim
         (process_of_preprocess $3)
         (process_of_preprocess $5) }
   | FBISIM IN process error
       { raise (Fatal_Parse_Error "missing '~' for strong bisimilarity") }
   | FBISIM IN process TILD error
       { raise (Fatal_Parse_Error "missing process after '~' for strong bisimilarity") }
-  | FBISIM error 
+  | FBISIM error
       { raise (Fatal_Parse_Error "missing '?' or process before '~' for strong bisimilarity") }
 
 
 
-  | WBISIM IN process TILD TILD process 
-      { Control.handle_is_wbisim 
-        (process_of_preprocess $3) 
+  | WBISIM IN process TILD TILD process
+      { Control.handle_is_wbisim
+        (process_of_preprocess $3)
         (process_of_preprocess $6) }
   | WBISIM IN process error
       { raise (Fatal_Parse_Error "missing '~~' for weak bisimilarity") }
@@ -173,9 +182,9 @@
   | WBISIM IN process TILD TILD error
       { raise (Fatal_Parse_Error "missing process after '~~' for weak bisimilarity") }
 
-  | WBISIM process TILD TILD process 
-      { Control.handle_wbisim 
-        (process_of_preprocess $2) 
+  | WBISIM process TILD TILD process
+      { Control.handle_wbisim
+        (process_of_preprocess $2)
         (process_of_preprocess $5) }
   | WBISIM process error
       { raise (Fatal_Parse_Error "missing '~~' for weak bisimilarity") }
@@ -183,13 +192,13 @@
       { raise (Fatal_Parse_Error "missing '~' for weak bisimilarity") }
   | WBISIM process TILD TILD error
       { raise (Fatal_Parse_Error "missing process after '~~' for weak bisimilarity") }
-      
-  | WBISIM error 
+
+  | WBISIM error
       { raise (Fatal_Parse_Error "missing '?' or process before '~~' for weak bisimilarity") }
 
-  | WFBISIM IN process TILD TILD process 
-      { Control.handle_is_fwbisim 
-        (process_of_preprocess $3) 
+  | WFBISIM IN process TILD TILD process
+      { Control.handle_is_fwbisim
+        (process_of_preprocess $3)
         (process_of_preprocess $6) }
   | WFBISIM IN process error
       { raise (Fatal_Parse_Error "missing '~~' for weak bisimilarity") }
@@ -201,66 +210,80 @@
   | WDERIV process
       { Control.handle_wderiv (process_of_preprocess $2) }
   | WDERIV error
-      { raise (Fatal_Parse_Error "missing process to derivate") } 
+      { raise (Fatal_Parse_Error "missing process to derivate") }
 
   | TDERIV process
       { Control.handle_tderiv (process_of_preprocess $2) }
   | TDERIV error
-      { raise (Fatal_Parse_Error "missing process to derivate") } 
+      { raise (Fatal_Parse_Error "missing process to derivate") }
 
   | WLTS process
       { Control.handle_wlts (process_of_preprocess $2) }
   | WLTS error
-      { raise (Fatal_Parse_Error "missing process for LTS") } 
+      { raise (Fatal_Parse_Error "missing process for LTS") }
   | WMINI process
       { Control.handle_wminimization (process_of_preprocess $2) }
   | WMINI error
-      {raise (Fatal_Parse_Error "missing process for minimization") } 
-      
+      {raise (Fatal_Parse_Error "missing process for minimization") }
+
   | DERIV process
       { Control.handle_deriv (process_of_preprocess $2) }
   | DERIV error
-      { raise (Fatal_Parse_Error "missing process to derivate") } 
+      { raise (Fatal_Parse_Error "missing process to derivate") }
   | LTS process
       { Control.handle_lts (process_of_preprocess $2) }
   | LTS error
-      { raise (Fatal_Parse_Error "missing process for LTS") } 
+      { raise (Fatal_Parse_Error "missing process for LTS") }
   | MINI process
       { Control.handle_minimization (process_of_preprocess $2) }
   | MINI error
-      {raise (Fatal_Parse_Error "missing process for minimization") } 
+      {raise (Fatal_Parse_Error "missing process for minimization") }
   | FREE process
       { Control.handle_free (process_of_preprocess $2) }
   | FREE error
-      { raise (Fatal_Parse_Error "missing process for free names") } 
+      { raise (Fatal_Parse_Error "missing process for free names") }
   | BOUND process
       { Control.handle_bound (process_of_preprocess $2) }
   | BOUND error
-      { raise (Fatal_Parse_Error "missing process for bound names") } 
+      { raise (Fatal_Parse_Error "missing process for bound names") }
   | NAMES process
       { Control.handle_names (process_of_preprocess $2) }
   | NAMES error
-      { raise (Fatal_Parse_Error "missing process for names") } 
+      { raise (Fatal_Parse_Error "missing process for names") }
+
+  | PROP IDENT LPAREN list_of_names RPAREN EQUAL formula
+      /* prop_name     params                    fmla      */
+      { Control.handle_prop $2 $4 (formula_of_preformula $7) }
+  | PROP IDENT EQUAL formula
+      /* prop_name   fmla      */
+      { Control.handle_prop $2 [] (formula_of_preformula $4) }
+
+  | CHECK_LOCAL formula SATISFY process
+      { Control.handle_check_local (formula_of_preformula $2) (process_of_preprocess $4) }
+
+  | CHECK_GLOBAL formula SATISFY process
+      { Control.handle_check_global (formula_of_preformula $2) (process_of_preprocess $4) }
+
   | HELP
       { Control.handle_help () }
   | QUIT
       { Control.handle_quit () }
 
       process:
-  | INT 
-      { if $1 = 0 then PSilent 
+  | INT
+      { if $1 = 0 then PSilent
         else raise (Fatal_Parse_Error "Only 0 can be used as Silent process") }
-  | END 
+  | END
       { PSilent }
   | prefix { PPrefix($1,PSilent) }
   | prefix COMMA process { PPrefix($1,$3) }
   | prefix COMMA error
       { raise (Fatal_Parse_Error "right-hand process missing after prefix") }
   | prefix error
-      { raise (Fatal_Parse_Error "missing ',' after prefix") }      
+      { raise (Fatal_Parse_Error "missing ',' after prefix") }
   | process PAR process {  PPar($1,$3) }
   | process PAR error
-      { raise (Fatal_Parse_Error "right-hand process missing in parallel") }      
+      { raise (Fatal_Parse_Error "right-hand process missing in parallel") }
   | process PLUS process { PSum($1,$3) }
   | process PLUS error
       { raise (Fatal_Parse_Error "right-hand process missing in sum") }
@@ -281,8 +304,12 @@
   | expr OUT LPAREN expr RPAREN { PSend($1,$4) }
   | expr IN LPAREN VAR COLON IDENT RPAREN { PReceive($1,$4,$6) }
 
+      list_of_prefixes:
+  | prefix { [$1] }
+  | prefix COMMA list_of_prefixes { $1::$3 }
+
       rename :
-   | LBRACKET list_of_renames RBRACKET { $2 }
+  | LBRACKET list_of_renames RBRACKET { $2 }
 
       list_of_renames :
   | IDENT DIV IDENT { [($3,$1)] }
@@ -333,6 +360,48 @@
       list_of_exprs:
   | /* empty */ { [] }
   | expr list_of_exprs { $1::$2 }
+
+
+      list_of_formulas:
+  | /* empty */ { [] }
+  | formula list_of_formulas { $1::$2 }
+
+      formula:
+  | TRUE { FTrue }
+  | FALSE { FFalse }
+  | LPAREN formula RPAREN { $2 }
+  | formula AND formula { FAnd ($1,$3) }
+  | formula OR formula { FOr ($1,$3) }
+  | formula IMPLIES formula { FImplies ($1,$3) }
+  | modality formula { FModal($1,$2) }
+  | TILD modality formula { FInvModal($2,$3) }
+  | MU LPAREN IDENT RPAREN DOT formula { FMu ($3, [], $6) }
+  | NU LPAREN IDENT RPAREN DOT formula { FNu ($3, [], $6) }
+  | IDENT LPAREN list_of_formulas RPAREN { FProp($1,$3) }
+  | IDENT { FVar($1) }
+
+      modality:
+  | INF list_of_prefixes SUP { Strong, Possibly, Rpref $2 }
+  | INF OUT SUP { Strong, Possibly, Rout }
+  | INF IN SUP { Strong, Possibly, Rin }
+  | INF DOT SUP { Strong, Possibly, Rany }
+
+  | INF INF list_of_prefixes SUP SUP { Weak, Possibly, Rpref $3 }
+  | INF INF OUT SUP SUP { Weak, Possibly, Rout }
+  | INF INF IN SUP SUP { Weak, Possibly, Rin }
+  | INF INF DOT SUP SUP { Weak, Possibly, Rany }
+
+  | LBRACKET list_of_prefixes RBRACKET { Strong, Necessity, Rpref $2 }
+  | LBRACKET OUT RBRACKET { Strong, Necessity, Rout }
+  | LBRACKET IN RBRACKET { Strong, Necessity, Rin}
+  | LBRACKET DOT RBRACKET { Strong, Necessity, Rany }
+
+  | LBRACKET LBRACKET list_of_prefixes RBRACKET RBRACKET {
+    Weak, Necessity, Rpref $3 }
+  | LBRACKET LBRACKET OUT RBRACKET RBRACKET { Weak, Necessity, Rout }
+  | LBRACKET LBRACKET IN RBRACKET RBRACKET { Weak, Necessity, Rin }
+  | LBRACKET LBRACKET DOT RBRACKET RBRACKET { Weak, Necessity, Rany }
+
 
 %%
 (* end of grammar *)

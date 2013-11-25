@@ -3,6 +3,7 @@ open Printf
 (* globa parser exception *)
 
 exception Fatal_Parse_Error of string ;;
+exception Non_Implemented_Exception 
 
 (* string sets and maps *)
 
@@ -22,6 +23,14 @@ let string_of_collection (op:string) (cl:string) (sep:string)
   in
     op ^ (str lst) ^ cl
 
+let string_of_collection_no_block (sep:string)
+    (tostr: 'a -> string) (lst: 'a list) =
+  let rec str = function
+    | [] -> ""
+    | e::[] -> tostr e
+    | e::es -> (tostr e) ^ sep ^ (str es)
+  in str lst
+
 let string_of_list tostr lst = string_of_collection "[" "]" ";" tostr lst
 
 let string_of_args tostr lst = string_of_collection "(" ")" "," tostr lst
@@ -29,7 +38,7 @@ let string_of_args tostr lst = string_of_collection "(" ")" "," tostr lst
 let string_of_set tostr set =
   string_of_collection "{" "}" "," tostr (SSet.elements set)
 
-let string_of_map map = 
+let string_of_map map =
   string_of_collection "{" "}" "," (fun (old,value) -> sprintf "%s/%s" value old) (SMap.bindings map)
 
 
@@ -51,7 +60,7 @@ let forget _ = ()
 
 (* permutations:: 'a list -> 'a list list *)
 let rec permutations =
-  let rec inject_all e n l llen = 
+  let rec inject_all e n l llen =
     if n > llen then []
     else (inject e n l)::(inject_all e (n+1) l llen)
   and inject e n l =

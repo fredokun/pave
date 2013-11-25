@@ -1,0 +1,294 @@
+
+
+\pdfminorversion 7
+\pdfobjcompresslevel 3
+
+\documentclass[a4paper]{article}
+\special{papersize=210mm,297mm}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{cite}
+\usepackage[francais]{babel}
+\usepackage[bookmarks=false,colorlinks,linkcolor=blue]{hyperref}
+\usepackage[top=3cm,bottom=2cm,left=3cm,right=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage{eso-pic}
+\usepackage{array}
+\usepackage{color}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{eurosym}
+\usepackage{url}
+\usepackage{textcomp}
+\usepackage{fancyhdr} 
+\usepackage{tikz}
+\usetikzlibrary{automata,positioning}
+
+\definecolor{lightgray}{gray}{0.9}
+
+\title{Projet de SACC}
+\author{Rémy \textsc{El-Sibaie Besognet} -- Roven \textsc{Gabriel}}
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Le logiciel Pave est un interprète pour un langage de modélisation de
+système concurrent : CCS\footnote{Calculus of communicating
+systems}. Il a été développé par les différentes générations
+d'étudiants de l'UE SACC. La dernière pierre ajoutée à cet édifice est
+la prise en main du $\mu$-Calcul dans l'interprète. Après l'ajout de
+sucre syntaxique, l'objectif est d'implémenter un algorithme de
+vérification d'un processus décrit en CCS à partir d'une formule
+$\mu$-Calcul.
+
+On appelle cette vérification du \emph{Model Checking}. On vérifie
+que la description d'un programme est fidèle à sa spécification de
+façon automatique. On présentera ici deux algorithme pour le
+Model Checking
+à hauteur de notre compréhension : local et global. Seul
+l'algorithme local a été écrit dans la version proposée par notre binôme.
+
+%% \section{$\mu$-Calcul par valeur}
+
+\section{Modifications préliminaires}
+
+Avant de pouvoir implémenter la vérification de formules, nous avons effectués
+quelques modifications dans l'optique d'améliorer l'utilisation de \texttt{pave}.
+Nous avons amélioré l'affichage d'erreur qui non seulement n'arrête pas le 
+programme mais aussi est plus clair. 
+
+\begin{verbatim}
+> prop A = <a!>;
+               ^
+Parser error at line 1 char 14: ~;~
+>
+\end{verbatim}
+
+Nous avons modifié le parseur afin de pouvoir définir et vérifier des formules du
+$\mu$-calcul et défini l'AST représentant  les formules. Nous avons deux
+particularités notables : les modalités sont représentées sous forme de triplet
+\emph{(force, type, restriction)} et les opérations \texttt{Mu} et \texttt{Nu}
+embarquent directement l'environement qui sera utilisé dans le \texttt{check local}.
+
+\section{Model checking local}
+
+L'algorithme de model checking local a été inspiré par Glynn Winskel
+dans \emph{Topics in concurrency}. Le principe est en fait assez
+simple. On parcourt récursivement le processus et la formule en
+vérifiant que chaque état du processus vérifie la formule. On traite
+les cas triviaux en traduisant simplement l'opérateur $\mu$-Calcul en
+opérateur booléen inductivement.
+
+\begin{lstlisting}[language=caml]
+let rec check def_map prop_map formula nproc =
+  let rec check_internal = function
+    | FTrue -> true
+    | FFalse -> false
+    | FNot formula -> not @@ check_internal formula
+    | FAnd (f1, f2) -> check_internal f1 && check_internal f2
+    | FOr (f1, f2) -> check_internal f1 || check_internal f2
+    | FImplies (f1, f2) -> check_internal f1 |> not || check_internal f2
+    | ...
+\end{lstlisting}
+
+On considère un processus $p$. Dans le cas des modalités, on récupère
+toutes les dérivations possibles de $p$ dont la transition est
+étiquetée par la bonne action (sans oublier \texttt{<>}
+et \texttt{[]}) et on construit un ensemble de processus qui
+correspond aux suivants de $p$. On appelle récursivement notre
+fonction \texttt{check} sur les éléments de cet ensemble avec la
+formule sans la modalité.
+
+La partie concernant les points fixes n'était pas triviale. L'idée est
+de définir une fonction de \emph{subtitution} et de remplacer
+récursivement le résultat courant dans l'appel suivant.
+
+\begin{lstlisting}[language=caml]
+let beta_reduce in_formula expected_var replacement =
+  let rec beta_reduce in_formula =
+  match in_formula with
+  | FTrue | FFalse -> in_formula
+  | FAnd (f1, f2) -> FAnd(beta_reduce f1, beta_reduce f2)
+  | FOr (f1, f2) -> FOr(beta_reduce f1, beta_reduce f2)
+  | FImplies (f1, f2) -> FImplies(beta_reduce f1, beta_reduce f2)
+  | FModal (modality, formula) -> FModal(modality, beta_reduce formula)
+  | FInvModal (modality, formula) -> FInvModal(modality, beta_reduce formula)
+  | FProp _ -> in_formula
+  | FVar var when var = expected_var -> replacement
+  | FVar _ -> in_formula
+  | FMu (x, env, formula) -> FMu(x, env, beta_reduce formula)
+  | FNu (x, env, formula) -> FNu(x, env, beta_reduce formula)
+  | FNot formula -> FNot (beta_reduce formula)
+  in
+  beta_reduce in_formula
+\end{lstlisting}
+
+\subsection{Trace}
+
+Afin de mieux comprendre les raison d'une propriété fausse, nous avons
+ajouté la fonctionnalitée de trace. Ainsi, à chaque étape dans
+l'algorithme, la formule courante et processus courant sont stockés et
+restitués à la fin de l'opération. Ainsi nous obtenons le chemin qui
+arrive à la propriété fausse.
+
+\begin{verbatim}
+checklocal ~<a?>(<a!>true) |- a!, a?;
+Trace : 
+	a!,a?,0 -| ~<a?><a!>True
+	a?,0 -| <a!>True
+FALSE PROPERTY
+\end{verbatim}
+
+Dans cet exemple nous pouvons voir que c'est à
+l'étape \verb|a?,0| associé à la
+formule \verb|<a!>True| que la propriété devient fausse.
+
+\begin{verbatim}
+def P = a!,P + b!,P;
+def D = P || c!;
+
+checklocal <a!><b!><a!><a!><c!><b!><b!><c!><c!><c!>true |- D;
+Trace : 
+	D() -| <a!><b!><a!><a!><c!><b!><b!><c!><c!><c!>True
+	(c!,0||P()) -| <b!><a!><a!><c!><b!><b!><c!><c!><c!>True
+	(c!,0||P()) -| <a!><a!><c!><b!><b!><c!><c!><c!>True
+	(c!,0||P()) -| <a!><c!><b!><b!><c!><c!><c!>True
+	(c!,0||P()) -| <c!><b!><b!><c!><c!><c!>True
+	P() -| <b!><b!><c!><c!><c!>True
+	P() -| <b!><c!><c!><c!>True
+	P() -| <c!><c!><c!>True
+FALSE PROPERTY
+\end{verbatim}
+
+Un autre exemple de trace qui nous permet de voir que \verb|c!| ne
+peut apparaitre qu'une seule fois, la consomation de cette action est
+clairement visible sur les processus utilisés à gauche.
+
+\section{Model Checking global}
+
+L'algorithme global pour le Model Checking a, lui, été inspiré par
+Sergey Berezin dans \emph{Model Checking algorithms for
+$\mu$-Calculus} L'implémentation de cet algorithme dans le projet a
+été arrêtée par manque de compréhension de l'article présenté et de
+l'idée même de la méthode dite globale. Nous n'avons pas compris les
+paramètres et ce qu'était sensé rendre l'algorithme.
+
+Notre première démarche a été de vouloir le résoudre avec la méthode
+proposée des BDD, d'où la présence du module correspondant. La
+traduction d'une formule vers un BDD demandait préalablement d'avoir
+compris l'algorithme simple. Nous avons donc tenté cette approche sans
+plus de succès.
+
+
+\section{Exemples}
+
+\subsection{Définition de propriétés usuelles}
+\begin{verbatim}
+prop Exercice5 = Mu(X).<a!>true or (<.>true and [.]X):
+prop Possibly(A) = Mu(X).A or <.>X;
+prop Deadlock = [.]false;
+prop Always(A) = Nu(X).A and [.]X;
+prop Continue = <.>true;
+prop Eventualy(A) = Mu(X).A or ([.]X and <.> true);
+\end{verbatim}
+
+\subsection{Vérifications}
+\begin{verbatim}
+def D2 = a!,(b? + D2);
+\end{verbatim}
+
+\begin{verbatim}
+> checklocal Always(Continue) |- D2;
+Trace : 
+	D2() -| Always(Continue)
+	D2() -| Nu(X){()}.(Continue and [.]X)
+	D2() -| (Continue and [.]Nu(X){(D2())}.(Continue and [.]X))
+	D2() -| Continue
+	D2() -| <.>True
+	(b?,0+D2()) -| True
+	D2() -| [.]Nu(X){(D2())}.(Continue and [.]X)
+	(b?,0+D2()) -| Nu(X){(D2())}.(Continue and [.]X)
+	(b?,0+D2()) -| (Continue and [.]Nu(X){((b?,0+D2()),D2())}.(Continue and [.]X))
+	(b?,0+D2()) -| Continue
+	(b?,0+D2()) -| <.>True
+	0 -| True
+	(b?,0+D2()) -| True
+	(b?,0+D2()) -| [.]Nu(X){((b?,0+D2()),D2())}.(Continue and [.]X)
+	0 -| Nu(X){((b?,0+D2()),D2())}.(Continue and [.]X)
+	0 -| (Continue and [.]Nu(X){(0,(b?,0+D2()),D2())}.(Continue and [.]X))
+	0 -| Continue
+	0 -| <.>True
+	(b?,0+D2()) -| Nu(X){((b?,0+D2()),D2())}.(Continue and [.]X)
+FALSE PROPERTY
+\end{verbatim}
+
+Le processus ne s'execute pas à l'infini tout le temps.
+
+\begin{verbatim}
+> checklocal Possibly(Continue) |- D2;
+TRUE PROPERTY
+
+> checklocal Possibly(Deadlock) |- D2;
+TRUE PROPERTY
+\end{verbatim}
+
+Il est cependant possible qu'il s'execute à l'infini ou qu'il s'arrête.
+
+\begin{verbatim}
+> checklocal Always(Deadlock) |- D2;
+Trace : 
+	D2() -| Always(Deadlock)
+	D2() -| Nu(X){()}.(Deadlock and [.]X)
+	D2() -| (Deadlock and [.]Nu(X){(D2())}.(Deadlock and [.]X))
+	D2() -| Deadlock
+	D2() -| [.]False
+	(b?,0+D2()) -| False
+FALSE PROPERTY
+
+\end{verbatim}
+
+Il ne s'arrête donc pas tout le temps.
+
+\begin{verbatim}
+def E = d!,c!,e!;
+def F = (c!,b!,a!,b! || c!,a!,b!);
+def G = (c!,b!,a!,b! || c!,a!,b! || E);
+
+prop SuiteAAC = Possibly(<a!><a!><c!>true);
+
+> checklocal SuiteAAC |- F;
+Trace : 
+	F() -| SuiteAAC
+	F() -| Possibly(<a!><a!><c!>True)
+	F() -| Mu(X){()}.(<a!><a!><c!>True or <.>X)
+	F() -| not Nu(X){()}.not (<a!><a!><c!>True or <.>not X)
+
+[...]
+	0 -| <.>not Nu(X){(0,b!,0,(b!,0||b!,0),(a!,b!,0||b!,0),
+            (b!,0||c!,a!,b!,0),(a!,b!,0||c!,a!,b!,0),(b!,a!,b!,0||c!,a!,b!,0),F()a}.
+            not (<a!><a!><c!>True or <.>not X)
+FALSE PROPERTY
+
+> checklocal SuiteAAC |- G;
+TRUE PROPERTY
+\end{verbatim}
+
+Dans cet exemple nous pouvons observer que la
+séquence \texttt{a!,a!,c!} n'est possible dans le processus F que si
+un troisième processus parallel E contenant
+\texttt{c!} est défini.
+
+\end{document}
+
+# Local Variables:
+# compile-command: "rubber -d rapport.tex"
+# End:
+
+%%  LocalWords:  Glynn Winskel Topics concurrency

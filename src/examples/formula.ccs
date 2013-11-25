@@ -1,0 +1,46 @@
+def D = a!, b?,(a! + b?);
+
+prop StartA = <a!>true;
+prop NotStartA = <a!>false;
+prop AllSecondB = [.]<b?>true;
+prop ExistsSecondB = <.><b?>true;
+prop ExistsThirdA = <a!><.><a!>true;
+prop EndsWithA = Mu(X).<a!>[.]false or [.]X;
+
+checklocal StartA |- D;
+checklocal NotStartA |- D;
+checklocal AllSecondB |- D;
+checklocal ExistsSecondB |- D;
+checklocal AllThirdA |- D;
+checklocal ExistsThirdA |- D;
+checklocal EndsWithA |- D;
+
+def P = a!,Q;
+def Q = a!,P;
+
+prop AllA = Nu(X).<a!>X;
+
+checklocal AllA |- P;
+
+prop AllB = Nu(X).<b!>X;
+
+checklocal AllB |- P;
+
+prop Exercice5 = Mu(X).<a!>true or (<.>true and [.]X):
+prop Possibly(A) = Mu(X).A or <.>X;
+prop Deadlock = [.]false;
+prop Always(A) = Nu(X).A and [.]X;
+prop Continue = <.>true;
+prop Eventualy(A) = Mu(X).A or ([.]X and <.> true);
+
+checklocal Always(Continue) |- P;
+checklocal Possibly(Deadlock) |- P;
+checklocal Possibly(Continue) |- D;
+checklocal Always(Deadlock) |- D;
+
+def D2 = a!,(b? + D2);
+
+checklocal Always(Continue) |- D2;
+checklocal Possibly(Continue) |- D2;
+checklocal Possibly(Deadlock) |- D2;
+checklocal Always(Deadlock) |- D2;

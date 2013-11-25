@@ -3,3 +3,6 @@ pave
 stests
 lts.dot
 lts_mini.dot
+*~
+*.swp
+.vimrc
