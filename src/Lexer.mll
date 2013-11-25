@@ -1,5 +1,5 @@
 
-{ 
+{
   open Parser
   let line=ref 1
 
@@ -11,7 +11,7 @@ let digit = ['0'-'9']
 let int = (['1'-'9'] digit*)
 
 let cmt = ('#' [^'\n']*)
-  
+
 let r_def = "def"
 let r_true = "true"
 let r_false = "false"
@@ -63,6 +63,7 @@ let tild = "~"
 let semicol = ";"
 let ws = (['\t' ' ']*)
 let colon = ':'
+let whereas = "|"
 
 let implies_1 = "==>"
 let implies_2 = "=>"
@@ -92,6 +93,9 @@ let cmd_check = "check"
 let cmd_check_local = "checklocal"
 let cmd_check_global = "checkglobal"
 
+let forall = "forall"
+let exists = "exists"
+
 let sat_1 = "|-"
 let sat_2 = "satisfies"
 
@@ -105,7 +109,7 @@ let nu_3 = "NU"
   rule token = parse
     | ws
 	{token lexbuf}
-    | eol                                
+    | eol
 	{ incr line;
 	  token lexbuf }
     | cmt
@@ -134,8 +138,8 @@ let nu_3 = "NU"
     | r_const { CONSTDEF }
     | r_type { TYPEDEF }
     | dotdot { DOTDOT }
-    | op_dot { DOT } 
-    | op_plus { PLUS } 
+    | op_dot { DOT }
+    | op_plus { PLUS }
     | op_minus { MINUS }
     | op_par { PAR }
     | op_out { OUT }
@@ -169,7 +173,8 @@ let nu_3 = "NU"
     | cmd_free { FREE }
     | cmd_bound { BOUND }
     | cmd_names { NAMES }
-	
+    | whereas { WHEREAS }
+
     | implies_1 { IMPLIES }
     | implies_2 { IMPLIES }
 
@@ -179,6 +184,9 @@ let nu_3 = "NU"
     | cmd_wlts { WLTS }
     | cmd_wmini { WMINI }
     | cmd_wfbisim { WFBISIM }
+
+    | forall { FORALL }
+    | exists { EXISTS }
 
     | mu_1 { MU }
     | mu_2 { MU }
@@ -195,14 +203,14 @@ let nu_3 = "NU"
 
     | sat_1 { SATISFY }
     | sat_2 { SATISFY }
-  
+
     | cmd_help { HELP }
     | cmd_quit { QUIT }
-    | ident as id                   
+    | ident as id
 	{ IDENT (id) }
     | eof { EOF }
-    | _ { failwith((Lexing.lexeme lexbuf) ^ 
+    | _ { failwith((Lexing.lexeme lexbuf) ^
 		      ": mistake at line " ^ string_of_int !line)}
-	
+
 	{
 	}

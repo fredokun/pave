@@ -4,7 +4,7 @@ open Utils
 
 let version_str = "Pave' v.1 r20130910"
 let usage = "Usage: pave <opt>"
-let banner = 
+let banner =
 "\n"^
 "===============\n"^
 "   .+------+                                         +------+.\n"^
@@ -44,40 +44,41 @@ let parse_error_msg lexbuf =
   in
     printf "Parser error at line %d char %d: ~%s~\n%!" l c tok ;;
 
-match !load_file with
+let _ =
+  match !load_file with
   | None ->
-      printf "Interactive mode... \n%!";
+    printf "Interactive mode... \n%!";
     Control.script_mode := false ;
     while true do
-	printf "> %!";
+      printf "> %!";
       let lexbuf = Lexing.from_channel stdin in
-	try
-	  ignore (Parser.script Lexer.token lexbuf)
-	with 
-	| Failure msg -> printf "Failure: %s\n%!" msg
-        | Fatal_Parse_Error(msg) ->
-          parse_error_msg lexbuf ;
-          printf " ==> %s\n%!" msg
-	| Parsing.Parse_error -> 
-          parse_error_msg lexbuf
+      try
+	ignore (Parser.script Lexer.token lexbuf)
+      with
+      | Failure msg -> printf "Failure: %s\n%!" msg
+      | Fatal_Parse_Error(msg) ->
+        parse_error_msg lexbuf ;
+        printf " ==> %s\n%!" msg
+      | Parsing.Parse_error ->
+        parse_error_msg lexbuf
     done
   | Some file ->
-      printf "Loading file %s... \n%!" file;
+    printf "Loading file %s... \n%!" file;
     Control.script_mode := true ;
-      let lexbuf = Lexing.from_channel (open_in file) in
-      let rec loop () =
-	let continue = 
-	  try
-	    Parser.script Lexer.token lexbuf
-	  with 
-	    | Failure msg -> printf "Failure: %s\n%!" msg ; true
-            | Fatal_Parse_Error(msg) ->
-              parse_error_msg lexbuf ;
-              printf " ==> %s\n%!" msg ; true
-	    | Parsing.Parse_error -> 
-              parse_error_msg lexbuf ; true
-	in
-	  if continue then loop ();
+    let lexbuf = Lexing.from_channel (open_in file) in
+    let rec loop () =
+      let continue =
+	try
+	  Parser.script Lexer.token lexbuf
+	with
+	| Failure msg -> printf "Failure: %s\n%!" msg ; true
+        | Fatal_Parse_Error(msg) ->
+          parse_error_msg lexbuf ;
+          printf " ==> %s\n%!" msg ; true
+	| Parsing.Parse_error ->
+          parse_error_msg lexbuf ; true
       in
-	loop ()
+      if continue then loop ();
+    in
+    loop ()
 ;;

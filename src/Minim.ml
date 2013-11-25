@@ -52,7 +52,7 @@ let string_of_graph g =
   in
     GMap.fold folder g ""
 
-let string_of_partition parts = 
+let string_of_partition parts =
   (List.fold_left
     (fun s part -> s ^ "\n" ^ (string_of_gset string_of_gstate part)) "" parts)
     ^ "\n"
@@ -109,12 +109,12 @@ let build_graph f_deriv init_graph init_partition defs ps =
     | _ -> (init_graph, init_partition)
 
 let rec refine (graph, part) =
-  let prevs = 
+  let prevs =
     List.map (fun x ->
       GSet.fold (fun x' acc -> GSet.union acc (GMap.find x' graph))
 	x GSet.empty) part
   in
-  let split part prev = 
+  let split part prev =
     let p1 = GSet.inter part prev in
     let p2 = GSet.diff part prev in
     (p1, p2)
@@ -123,7 +123,7 @@ let rec refine (graph, part) =
     match pt with
       | [] -> []
       | h1::t1 -> (f2 h1 pr)@(f1 t1 pr)
-  and f2 pt pr = 
+  and f2 pt pr =
     match pr with
       | [] -> [pt]
       | h2::t2 -> let (spl1, spl2) = split pt h2 in
@@ -137,7 +137,7 @@ let rec refine (graph, part) =
   then part' else refine (graph, part')
 
 let build_lts partition =
-  let (ps, ls) = 
+  let (ps, ls) =
     List.partition (fun x -> match GSet.choose x with
 		    | LState _ -> false
 		    | PState _ -> true)
@@ -163,15 +163,15 @@ let build_lts partition =
       | cp::t ->
 	  begin
 	    let p = List.hd cp in
-	    let labs = 
+	    let labs =
 	      List.fold_left
-		(fun acc x -> 
+		(fun acc x ->
 		   match List.filter (fun (src,_,_) -> src = p) x with
 		     | [] -> acc
 		     | t::_ -> t::acc
 		)
 		[] lstates
-	    in let transs' = 
+	    in let transs' =
 		List.fold_left
 		  (fun acc (_,lbl,dst) ->
 		     let cdl = List.filter
@@ -216,5 +216,3 @@ let is_fbisimilar f_deriv defs p1 p2 =
   let l = List.filter (fun x ->
     (GSet.mem pst1 x) || (GSet.mem pst2 x)) partition' in
   (List.length l) = 1
-
-
